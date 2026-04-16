@@ -113,7 +113,6 @@ h1 {
   display: grid;
   place-items: center;
   background: radial-gradient(circle at 18% 20%, #2a5298 0%, #1e3c72 55%, #122442 100%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 24px;
   padding: 2rem;
   text-align: center;
