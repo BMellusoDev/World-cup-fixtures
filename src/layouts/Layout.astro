@@ -21,6 +21,17 @@ const { title } = Astro.props;
     </div>
   </header>
   <slot />
+  <footer class="site-footer">
+    <div class="container site-footer-inner">
+      <div class="footer-content">
+        <span>World Cup Fixtures</span>
+        <span class="footer-sep">·</span>
+        <span>Hecho con <span aria-label="amor">❤️</span> y <span aria-label="fútbol">⚽</span> por Bruno Melluso</span>
+        <span class="footer-sep">·</span>
+        <a href="https://github.com/jfjelstul/worldcup" target="_blank" rel="noopener" class="footer-link">Datos: Fjelstul World Cup DB</a>
+      </div>
+    </div>
+  </footer>
   <script is:inline>
     (() => {
       const messages = {
