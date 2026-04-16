@@ -1,0 +1,369 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { db } from '../../lib/db.js';
+import { getCountryCode } from '../../lib/flags.js';
+
+export async function getStaticPaths() {
+  const worldcups = db.getWorldCups();
+  const paths = [];
+  for (const wc of worldcups) {
+    const wcData = db.getWorldCup(String(wc.year));
+    for (const match of wcData?.matches || []) {
+      paths.push({
+        params: { slug: `${wc.year}-${match.id}` },
+        props: { match, year: wc.year },
+      });
+    }
+  }
+  return paths;
+}
+
+const { match, year } = Astro.props;
+
+const flag1 = getCountryCode(match.team1) || '';
+const flag2 = getCountryCode(match.team2) || '';
+const hasScore = match.score1 !== null && match.score2 !== null;
+const title = `${match.team1} vs ${match.team2} — Mundial ${year}`;
+---
+
+<Layout title={title}>
+  <main class="container page-match-detail">
+
+    <!-- Back button -->
+    <div class="back-nav">
+      <a href={`/${year}`} class="back-link">
+        ← Mundial {year}
+      </a>
+    </div>
+
+    <!-- Match header -->
+    <header class="match-detail-header card">
+      <p class="match-detail-phase">{match.phase}</p>
+      <p class="match-detail-date" data-match-date={match.date}>{match.date}</p>
+
+      <div class="match-detail-teams">
+        <div class="match-detail-team">
+          <span class="country-flag match-detail-flag" data-iso={flag1} aria-hidden="true">⚑</span>
+          <span class="country-name match-detail-name">{match.team1}</span>
+        </div>
+
+        <div class="match-detail-score">
+          {hasScore
+            ? <span class="score-value">{match.score1} – {match.score2}</span>
+            : <span class="score-tbd" data-i18n="toBePlayed">Por jugar</span>
+          }
+        </div>
+
+        <div class="match-detail-team match-detail-team--right">
+          <span class="country-name match-detail-name">{match.team2}</span>
+          <span class="country-flag match-detail-flag" data-iso={flag2} aria-hidden="true">⚑</span>
+        </div>
+      </div>
+
+      <p class="match-detail-stadium">🏟 {match.stadium}</p>
+    </header>
+
+    <!-- Detail sections (populated by client-side JS) -->
+    {hasScore ? (
+      <div id="match-detail-data" data-match-slug={`${year}-${match.id}`}>
+
+        <div id="detail-loading" class="detail-loading">
+          <div class="loading-spinner"></div>
+          <p>Cargando detalles del partido...</p>
+        </div>
+
+        <div id="detail-content" class="detail-content" hidden>
+
+          <!-- Goals -->
+          <section id="section-goals" class="detail-section card" hidden>
+            <h2 class="detail-section-title">⚽ Goles</h2>
+            <div class="goals-columns">
+              <div class="goals-col" id="goals-home">
+                <h3 class="goals-col-header country-name">{match.team1}</h3>
+                <ul class="event-list" id="goals-home-list"></ul>
+              </div>
+              <div class="goals-col" id="goals-away">
+                <h3 class="goals-col-header goals-col-header--right country-name">{match.team2}</h3>
+                <ul class="event-list event-list--right" id="goals-away-list"></ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Bookings -->
+          <section id="section-bookings" class="detail-section card" hidden>
+            <h2 class="detail-section-title">🟨 Tarjetas</h2>
+            <div class="goals-columns">
+              <div class="goals-col" id="bookings-home">
+                <h3 class="goals-col-header country-name">{match.team1}</h3>
+                <ul class="event-list" id="bookings-home-list"></ul>
+              </div>
+              <div class="goals-col" id="bookings-away">
+                <h3 class="goals-col-header goals-col-header--right country-name">{match.team2}</h3>
+                <ul class="event-list event-list--right" id="bookings-away-list"></ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Substitutions -->
+          <section id="section-subs" class="detail-section card" hidden>
+            <h2 class="detail-section-title">🔄 Cambios</h2>
+            <div class="goals-columns">
+              <div class="goals-col">
+                <h3 class="goals-col-header country-name">{match.team1}</h3>
+                <ul class="event-list" id="subs-home-list"></ul>
+              </div>
+              <div class="goals-col">
+                <h3 class="goals-col-header goals-col-header--right country-name">{match.team2}</h3>
+                <ul class="event-list event-list--right" id="subs-away-list"></ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Penalty shootout -->
+          <section id="section-penalties" class="detail-section card" hidden>
+            <h2 class="detail-section-title">🥅 Tanda de penaltis</h2>
+            <div class="penalties-list" id="penalties-list"></div>
+          </section>
+
+          <!-- Starting lineup -->
+          <section id="section-lineup" class="detail-section card" hidden>
+            <h2 class="detail-section-title">👕 Alineaciones</h2>
+            <div class="goals-columns">
+              <div class="goals-col">
+                <h3 class="goals-col-header country-name">{match.team1}</h3>
+                <ul class="lineup-list" id="lineup-home-list"></ul>
+              </div>
+              <div class="goals-col">
+                <h3 class="goals-col-header goals-col-header--right country-name">{match.team2}</h3>
+                <ul class="lineup-list lineup-list--right" id="lineup-away-list"></ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Referees -->
+          <section id="section-referees" class="detail-section card" hidden>
+            <h2 class="detail-section-title">🟡 Árbitros</h2>
+            <ul class="referee-list" id="referee-list"></ul>
+          </section>
+
+          <!-- No data fallback -->
+          <p id="no-detail-data" class="no-detail-msg" hidden>
+            No hay datos detallados disponibles para este partido.
+          </p>
+
+        </div>
+      </div>
+    ) : (
+      <div class="card detail-upcoming">
+        <p>Los detalles del partido estarán disponibles una vez que se juegue.</p>
+      </div>
+    )}
+  </main>
+</Layout>
+
+<script>
+  const container = document.getElementById('match-detail-data');
+  if (!container) {
+    // upcoming match, nothing to do
+  } else {
+    const matchSlug = container.dataset.matchSlug;
+
+    (async () => {
+      const loadingEl  = document.getElementById('detail-loading');
+      const contentEl  = document.getElementById('detail-content');
+      const noDataEl   = document.getElementById('no-detail-data');
+
+      try {
+        const res = await fetch(`/data/fjelstul/${matchSlug}.json`);
+        if (!res.ok) throw new Error('not found');
+        const data = await res.json();
+
+        loadingEl.hidden = true;
+        contentEl.hidden = false;
+
+        // ── GOALS ──────────────────────────────────────────────────────────
+        const goalsSection    = document.getElementById('section-goals');
+        const goalsHomeList   = document.getElementById('goals-home-list');
+        const goalsAwayList   = document.getElementById('goals-away-list');
+
+        if (data.goals && data.goals.length > 0) {
+          goalsSection.hidden = false;
+          for (const g of data.goals) {
+            const badge = g.own_goal ? ' <span class="event-badge event-badge--og">OG</span>'
+                        : g.penalty  ? ' <span class="event-badge event-badge--pen">P</span>'
+                        : '';
+            const li = document.createElement('li');
+            li.className = 'event-item';
+            li.innerHTML = `<span class="event-minute">${g.minute}</span> <span class="event-player">${g.player}</span>${badge}`;
+
+            // home_team true → goal scored by home side
+            if (g.home_team) {
+              goalsHomeList.appendChild(li);
+            } else {
+              goalsAwayList.appendChild(li);
+            }
+          }
+        }
+
+        // ── BOOKINGS ───────────────────────────────────────────────────────
+        const bookingsSection  = document.getElementById('section-bookings');
+        const bookingsHomeList = document.getElementById('bookings-home-list');
+        const bookingsAwayList = document.getElementById('bookings-away-list');
+
+        // We need to know who is home vs away; use goals data first, fall back to first booking
+        // The Fjelstul home_team field tells us: home_team=1 means the player's team is home
+        // We store home_team per booking
+        if (data.bookings && data.bookings.length > 0) {
+          // Fetch match info to know home/away team names
+          let homeTeamName = null;
+          if (data.goals.length > 0) {
+            const homeGoal = data.goals.find(g => g.home_team);
+            const awayGoal = data.goals.find(g => !g.home_team);
+            if (homeGoal) homeTeamName = homeGoal.team;
+          }
+
+          // If we couldn't determine from goals, use bookings
+          if (!homeTeamName && data.bookings.length > 0) {
+            // We don't have home_team in bookings (we didn't save it), so just use 2 columns by team name
+          }
+
+          bookingsSection.hidden = false;
+          // Group by team (2 teams)
+          const teams = [...new Set(data.bookings.map(b => b.team))];
+          // Determine which team goes in home col — try to match page's team1
+          // We'll use the team name that matches team1 in the page
+          const team1Name = document.querySelector('#goals-home .goals-col-header')?.textContent?.trim();
+          const team2Name = document.querySelector('#goals-away .goals-col-header')?.textContent?.trim();
+
+          for (const b of data.bookings) {
+            const icon = b.red_card || b.second_yellow_card ? '🟥' : '🟨';
+            const li = document.createElement('li');
+            li.className = 'event-item';
+            li.innerHTML = `<span class="event-minute">${b.minute}</span> ${icon} <span class="event-player">${b.player}</span>`;
+
+            // Match team name to home/away column
+            const isTeam1 = b.team.toLowerCase() === (team1Name || '').toLowerCase();
+            if (isTeam1) {
+              bookingsHomeList.appendChild(li);
+            } else {
+              bookingsAwayList.appendChild(li);
+            }
+          }
+        }
+
+        // ── SUBSTITUTIONS ──────────────────────────────────────────────────
+        const subsSection   = document.getElementById('section-subs');
+        const subsHomeList  = document.getElementById('subs-home-list');
+        const subsAwayList  = document.getElementById('subs-away-list');
+
+        if (data.substitutions && data.substitutions.length > 0) {
+          subsSection.hidden = false;
+          const team1Name = document.querySelector('#goals-home .goals-col-header')?.textContent?.trim();
+
+          for (const s of data.substitutions) {
+            const li = document.createElement('li');
+            li.className = 'event-item event-item--sub';
+            li.innerHTML = `<span class="event-minute">${s.minute}</span> <span class="sub-off">↓ ${s.player_off}</span>${s.player_on ? ` <span class="sub-on">↑ ${s.player_on}</span>` : ''}`;
+
+            const isTeam1 = s.team.toLowerCase() === (team1Name || '').toLowerCase();
+            if (isTeam1) {
+              subsHomeList.appendChild(li);
+            } else {
+              subsAwayList.appendChild(li);
+            }
+          }
+        }
+
+        // ── PENALTY SHOOTOUT ───────────────────────────────────────────────
+        const penSection = document.getElementById('section-penalties');
+        const penList    = document.getElementById('penalties-list');
+
+        if (data.penalty_kicks && data.penalty_kicks.length > 0) {
+          penSection.hidden = false;
+          const team1Name = document.querySelector('#goals-home .goals-col-header')?.textContent?.trim();
+
+          // Group into home and away
+          const homeKicks = data.penalty_kicks.filter(p => p.home_team);
+          const awayKicks = data.penalty_kicks.filter(p => !p.home_team);
+
+          penList.innerHTML = `
+            <div class="pen-columns">
+              <div class="pen-col">
+                <h3 class="goals-col-header country-name">${team1Name || ''}</h3>
+                <ol class="pen-list" id="pen-home"></ol>
+              </div>
+              <div class="pen-col">
+                <h3 class="goals-col-header goals-col-header--right country-name">${document.querySelector('#goals-away .goals-col-header')?.textContent?.trim() || ''}</h3>
+                <ol class="pen-list" id="pen-away"></ol>
+              </div>
+            </div>`;
+
+          const penHome = document.getElementById('pen-home');
+          const penAway = document.getElementById('pen-away');
+
+          // Determine which team is "home" for penalty display
+          // home_team=true → that team is home
+          const allHome = data.penalty_kicks.filter(p => p.home_team);
+          const allAway = data.penalty_kicks.filter(p => !p.home_team);
+
+          // The team in "home" column matches team1 on the page if they share the same team name
+          // We use home_team flag directly
+          for (const p of allHome) {
+            const li = document.createElement('li');
+            li.innerHTML = `${p.converted ? '✅' : '❌'} <span>${p.player}</span>`;
+            penHome.appendChild(li);
+          }
+          for (const p of allAway) {
+            const li = document.createElement('li');
+            li.innerHTML = `${p.converted ? '✅' : '❌'} <span>${p.player}</span>`;
+            penAway.appendChild(li);
+          }
+        }
+
+        // ── STARTING LINEUP ────────────────────────────────────────────────
+        const lineupSection   = document.getElementById('section-lineup');
+        const lineupHomeList  = document.getElementById('lineup-home-list');
+        const lineupAwayList  = document.getElementById('lineup-away-list');
+
+        if (data.starters && data.starters.length > 0) {
+          lineupSection.hidden = false;
+          for (const p of data.starters) {
+            const li = document.createElement('li');
+            li.className = 'lineup-item';
+            li.innerHTML = `<span class="lineup-number">${p.number}</span> <span class="lineup-player">${p.player}</span> <span class="lineup-pos">${p.position_code}</span>`;
+            (p.home_team ? lineupHomeList : lineupAwayList).appendChild(li);
+          }
+        }
+
+        // ── REFEREES ───────────────────────────────────────────────────────
+        const refSection = document.getElementById('section-referees');
+        const refList    = document.getElementById('referee-list');
+
+        if (data.referees && data.referees.length > 0) {
+          refSection.hidden = false;
+          for (const r of data.referees) {
+            const li = document.createElement('li');
+            li.className = 'referee-item';
+            li.textContent = `${r.name} (${r.country})`;
+            refList.appendChild(li);
+          }
+        }
+
+        // If no sections visible, show fallback
+        const anySectionVisible = [
+          'section-goals', 'section-bookings', 'section-subs', 'section-penalties',
+          'section-lineup', 'section-referees'
+        ].some(id => !document.getElementById(id)?.hidden);
+
+        if (!anySectionVisible) {
+          noDataEl.hidden = false;
+        }
+
+      } catch (err) {
+        loadingEl.hidden = true;
+        contentEl.hidden = false;
+        noDataEl.hidden = false;
+      }
+    })();
+  }
+</script>

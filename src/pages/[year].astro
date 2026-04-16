@@ -70,26 +70,30 @@ const orderedPhases = Object.entries(phaseGroups);
           <h2 data-phase={phase}>{phase}</h2>
           <div class="match-grid">
             {matches.map((match) => (
-              <article class="card match-card">
-                <p class="match-date" data-match-date={match.date}>{match.date}</p>
-                <p class="match-teams">
-                  <span class="match-team">
-                    <span class="country-flag" data-iso={getCountryCode(match.team1) || ''} aria-hidden="true">⚑</span>
-                    <span class="country-name">{match.team1}</span>
-                  </span>
-                  <span data-i18n="versus">vs</span>
-                  <span class="match-team">
-                    <span class="country-flag" data-iso={getCountryCode(match.team2) || ''} aria-hidden="true">⚑</span>
-                    <span class="country-name">{match.team2}</span>
-                  </span>
-                </p>
-                <p class="match-score">
-                  {match.score1 === null || match.score2 === null
-                    ? <span data-i18n="toBePlayed">Por jugar</span>
-                    : `${match.score1} - ${match.score2}`}
-                </p>
-                <p class="match-stadium">{match.stadium}</p>
-              </article>
+              <a href={`/match/${year}-${match.id}`} class="match-card-link">
+                <article class="card match-card" data-slug={`${year}-${match.id}`}>
+                  <p class="match-date" data-match-date={match.date}>{match.date}</p>
+                  <p class="match-teams">
+                    <span class="match-team">
+                      <span class="country-flag" data-iso={getCountryCode(match.team1) || ''} aria-hidden="true">⚑</span>
+                      <span class="country-name">{match.team1}</span>
+                    </span>
+                    <span data-i18n="versus">vs</span>
+                    <span class="match-team">
+                      <span class="country-flag" data-iso={getCountryCode(match.team2) || ''} aria-hidden="true">⚑</span>
+                      <span class="country-name">{match.team2}</span>
+                    </span>
+                  </p>
+                  <p class="match-score">
+                    {match.score1 === null || match.score2 === null
+                      ? <span data-i18n="toBePlayed">Por jugar</span>
+                      : `${match.score1} - ${match.score2}`}
+                  </p>
+                  <p class="match-penalties" hidden></p>
+                  <p class="match-stadium">{match.stadium}</p>
+                  <span class="match-more-btn">Saber más →</span>
+                </article>
+              </a>
             ))}
           </div>
         </section>
@@ -97,3 +101,25 @@ const orderedPhases = Object.entries(phaseGroups);
     </section>
   </main>
 </Layout>
+
+<script>
+  (async () => {
+    const cards = document.querySelectorAll('.match-card[data-slug]');
+    if (!cards.length) return;
+    try {
+      const res = await fetch('/data/penalties.json');
+      if (!res.ok) return;
+      const penalties = await res.json();
+      for (const card of cards) {
+        const slug = card.dataset.slug;
+        if (!penalties[slug]) continue;
+        const { pen1, pen2 } = penalties[slug];
+        const penEl = card.querySelector('.match-penalties');
+        if (penEl) {
+          penEl.textContent = `(penaltis: ${pen1} – ${pen2})`;
+          penEl.hidden = false;
+        }
+      }
+    } catch { /* non-critical */ }
+  })();
+</script>
