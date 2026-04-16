@@ -1,17 +1,15 @@
 ---
+import Layout from '../layouts/Layout.astro';
+import WorldCupSelector from '../components/WorldCupSelector.astro';
+import { db } from '../lib/db.js';
 
+const worldcups = db.getWorldCups();
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout title="World Cup Fixtures">
+  <main class="container page-home">
+    <h1 data-i18n="homeTitle">World Cup Fixtures</h1>
+    <p class="subtitle" data-i18n="homeSubtitle">Todos los resultados historicos + Mundial 2026</p>
+    <WorldCupSelector worldcups={worldcups} />
+  </main>
+</Layout>

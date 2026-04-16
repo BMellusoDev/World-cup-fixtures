@@ -1,0 +1,179 @@
+---
+import '../styles/global.css';
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>{title}</title>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header-inner">
+      <a href="/" class="site-logo" aria-label="Volver a la pagina principal">
+        <span>World</span>
+        <span>Cup</span>
+        <span class="site-logo-ball" aria-hidden="true">⚽</span>
+        <span>Fixtures</span>
+      </a>
+    </div>
+  </header>
+  <slot />
+  <script is:inline>
+    (() => {
+      const messages = {
+        es: {
+          homeTitle: 'World Cup Fixtures',
+          homeSubtitle: 'Todos los resultados historicos + Mundial 2026',
+          upcomingBadge: 'Proximo',
+          upcomingWorldCup: 'Proximo Mundial 2026',
+          noMatches: 'No hay partidos cargados para este Mundial.',
+          toBePlayed: 'Por jugar',
+          versus: 'vs',
+          missingPoster: 'Sin cartel'
+        },
+        en: {
+          homeTitle: 'World Cup Fixtures',
+          homeSubtitle: 'All historical results + 2026 World Cup',
+          upcomingBadge: 'Upcoming',
+          upcomingWorldCup: 'Upcoming 2026 World Cup',
+          noMatches: 'There are no loaded matches for this World Cup.',
+          toBePlayed: 'To be played',
+          versus: 'vs',
+          missingPoster: 'No poster'
+        },
+        pt: {
+          homeTitle: 'Calendario da Copa do Mundo',
+          homeSubtitle: 'Todos os resultados historicos + Copa do Mundo 2026',
+          upcomingBadge: 'Proximo',
+          upcomingWorldCup: 'Proxima Copa do Mundo 2026',
+          noMatches: 'Nao ha partidas carregadas para esta Copa do Mundo.',
+          toBePlayed: 'A disputar',
+          versus: 'vs',
+          missingPoster: 'Sem poster'
+        }
+      };
+
+      function getLocale() {
+        const preferred = (navigator.languages && navigator.languages[0]) || navigator.language || 'es';
+        const base = preferred.toLowerCase().split('-')[0];
+        return messages[base] ? base : 'es';
+      }
+
+      function translatePhase(raw, locale) {
+        if (!raw) {
+          return raw;
+        }
+
+        if (locale === 'en') {
+          return raw
+            .replace(/Grupo/gi, 'Group')
+            .replace(/Fecha/gi, 'Matchday')
+            .replace(/Fase de grupos/gi, 'Group stage')
+            .replace(/Tercer puesto/gi, 'Third place');
+        }
+
+        if (locale === 'pt') {
+          return raw
+            .replace(/Group/gi, 'Grupo')
+            .replace(/Matchday/gi, 'Rodada')
+            .replace(/Round of 32/gi, 'Dezesseis avos')
+            .replace(/Round of 16/gi, 'Oitavas de final')
+            .replace(/Quarter-?finals?/gi, 'Quartas de final')
+            .replace(/Semi-?finals?/gi, 'Semifinais')
+            .replace(/Play-off for third place|Third place/gi, 'Disputa de terceiro lugar');
+        }
+
+        return raw
+          .replace(/Group/gi, 'Grupo')
+          .replace(/Matchday/gi, 'Fecha')
+          .replace(/Round of 32/gi, 'Dieciseisavos')
+          .replace(/Round of 16/gi, 'Octavos de final')
+          .replace(/Quarter-?finals?/gi, 'Cuartos de final')
+          .replace(/Semi-?finals?/gi, 'Semifinales')
+          .replace(/Play-off for third place|Third place/gi, 'Tercer puesto');
+      }
+
+      function applyTranslations() {
+        const locale = getLocale();
+        const dict = messages[locale];
+
+        document.documentElement.lang = locale;
+
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+          const key = el.getAttribute('data-i18n');
+          if (key && dict[key]) {
+            el.textContent = dict[key];
+          }
+        });
+
+        document.querySelectorAll('[data-match-date]').forEach((el) => {
+          const value = el.getAttribute('data-match-date');
+          if (!value) {
+            return;
+          }
+
+          const parsed = new Date(`${value}T00:00:00`);
+          if (Number.isNaN(parsed.getTime())) {
+            return;
+          }
+
+          el.textContent = new Intl.DateTimeFormat(locale, {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }).format(parsed);
+        });
+
+        document.querySelectorAll('[data-phase]').forEach((el) => {
+          const raw = el.getAttribute('data-phase') || '';
+          el.textContent = translatePhase(raw, locale);
+        });
+
+        applyFlagFallbackIfNeeded();
+      }
+
+      function applyFlagFallbackIfNeeded() {
+        const canUseEmojiFlags = supportsFlagEmojiByWidth();
+
+        document.querySelectorAll('.country-flag').forEach((el) => {
+          const iso = (el.getAttribute('data-iso') || '').trim().toUpperCase();
+          if (!iso || iso.length !== 2) {
+            el.textContent = '⚑';
+            return;
+          }
+
+          el.textContent = canUseEmojiFlags ? toFlagEmoji(iso) : '⚑';
+        });
+      }
+
+      function supportsFlagEmojiByWidth() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return false;
+        }
+
+        ctx.font = '32px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+        const flagWidth = ctx.measureText('🇦🇷').width;
+        const lettersWidth = ctx.measureText('AR').width;
+
+        return Math.abs(flagWidth - lettersWidth) > 3;
+      }
+
+      function toFlagEmoji(isoCode) {
+        const points = isoCode
+          .toUpperCase()
+          .split('')
+          .map((char) => 127397 + char.charCodeAt(0));
+        return String.fromCodePoint(...points);
+      }
+
+      document.addEventListener('DOMContentLoaded', applyTranslations);
+      document.addEventListener('astro:page-load', applyTranslations);
+    })();
+  </script>
+</body>
+</html>

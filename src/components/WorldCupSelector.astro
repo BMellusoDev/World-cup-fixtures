@@ -1,0 +1,179 @@
+---
+import { getCountryCode, splitHostCountries } from '../lib/flags.js';
+import { getPosterForYear } from '../lib/posters.js';
+
+const { worldcups } = Astro.props;
+const cards = worldcups.map((worldcup) => ({
+  ...worldcup,
+  posterUrl: getPosterForYear(worldcup.year)
+}));
+---
+
+<div class="worldcups-grid" id="worldcupsGrid">
+  {cards.map((worldcup) => (
+    <a 
+      href={`/${encodeURIComponent(String(worldcup.year))}/`}
+      class={`worldcup-card group ${worldcup.posterUrl ? 'has-poster' : 'no-poster'}`}
+      transition:name={`wc-${worldcup.year}`}
+      style={worldcup.posterUrl ? `--poster-url: url('${worldcup.posterUrl}')` : undefined}
+    >
+      <div class="year">{worldcup.year}</div>
+      <div class="host">
+        {splitHostCountries(worldcup.host).map((country, index, arr) => (
+          <span class="host-country">
+            <span class="country-flag" data-iso={getCountryCode(country) || ''} aria-hidden="true">⚑</span>
+            <span class="country-name">{country}</span>
+            {index < arr.length - 1 && <span class="host-separator"> · </span>}
+          </span>
+        ))}
+      </div>
+      {worldcup.champion && (
+        <div class="champion">
+          🏆 <span class="country-flag" data-iso={getCountryCode(worldcup.champion) || ''} aria-hidden="true">⚑</span> <span class="country-name">{worldcup.champion}</span>
+        </div>
+      )}
+      {worldcup.upcoming && (
+        <div class="upcoming">
+          <i class="fas fa-fire"></i> <span data-i18n="upcomingBadge">Proximo</span>
+        </div>
+      )}
+      {!worldcup.posterUrl && (
+        <div class="missing-poster" data-i18n="missingPoster">Sin cartel</div>
+      )}
+    </a>
+  ))}
+</div>
+
+<script>
+  // Animaciones y efectos
+  document.addEventListener('astro:page-load', () => {
+    const cards = document.querySelectorAll('.worldcup-card');
+    cards.forEach((card, index) => {
+      card.style.animationDelay = `${index * 0.1}s`;
+    });
+  });
+</script>
+
+<style>
+  .worldcups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+  }
+  
+  .worldcup-card {
+    position: relative;
+    isolation: isolate;
+    background:
+      linear-gradient(rgba(9, 14, 28, 0.56), rgba(9, 14, 28, 0.56)),
+      var(--poster-url),
+      radial-gradient(circle at 15% 20%, #2a5298 0%, #1e3c72 55%, #122442 100%);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 20px;
+    padding: 2rem;
+    border: none;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+    text-decoration: none;
+    color: white;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .worldcup-card.no-poster {
+    outline: 1px dashed rgba(255, 255, 255, 0.35);
+    outline-offset: -8px;
+  }
+
+  .worldcup-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+    background:
+      linear-gradient(rgba(9, 14, 28, 0.45), rgba(9, 14, 28, 0.45)),
+      var(--poster-url),
+      radial-gradient(circle at 15% 20%, #2a5298 0%, #1e3c72 55%, #122442 100%);
+  }
+  
+  .worldcup-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ffd700, #ff6b35);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+  
+  .worldcup-card:hover::before {
+    transform: scaleX(1);
+  }
+  
+  .year {
+    position: relative;
+    z-index: 2;
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(45deg, #ffd700, #ff6b35);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .host {
+    position: relative;
+    z-index: 2;
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    font-family: 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+  }
+  
+  .champion {
+    position: relative;
+    z-index: 2;
+    color: #ffd700;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+  }
+  
+  .upcoming {
+    z-index: 2;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(220, 38, 38, 0.9);
+    color: white;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .missing-poster {
+    z-index: 2;
+    position: absolute;
+    left: 0.8rem;
+    bottom: 0.8rem;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.9);
+  }
+</style>

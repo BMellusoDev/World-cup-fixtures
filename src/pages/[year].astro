@@ -1,0 +1,99 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { db } from '../lib/db.js';
+import { getCountryCode, splitHostCountries } from '../lib/flags.js';
+import { getPosterForYear } from '../lib/posters.js';
+
+export async function getStaticPaths() {
+  const worldcups = db.getWorldCups();
+  return worldcups.map(worldcup => ({
+    params: { year: worldcup.year.toString() }
+  }));
+}
+
+const { year } = Astro.params;
+const worldcup = db.getWorldCup(year);
+if (!worldcup) return Astro.redirect('/404');
+
+db.generateUpcomingMatches(year);
+const posterUrl = getPosterForYear(year);
+
+const phaseGroups = (worldcup.matches || []).reduce((acc, match) => {
+  const phase = match.phase || 'Otros';
+  if (!acc[phase]) {
+    acc[phase] = [];
+  }
+  acc[phase].push(match);
+  return acc;
+}, {});
+
+const orderedPhases = Object.entries(phaseGroups);
+---
+
+<Layout title={`Mundial ${year} - Resultados`}>
+  <main class="container page-year">
+    <header class="year-header">
+      <div class={`year-header-inner ${posterUrl ? 'has-poster' : 'no-poster'}`} style={posterUrl ? `--year-poster: url('${posterUrl}')` : undefined}>
+        <div class="year-header-overlay"></div>
+        <div class="year-header-content">
+          <h1 class="year-title">
+            {year}
+          </h1>
+          <p class="year-host">
+            {splitHostCountries(worldcup.host).map((country, index, arr) => (
+              <span class="host-country">
+                <span class="country-flag" data-iso={getCountryCode(country) || ''} aria-hidden="true">⚑</span>
+                <span class="country-name">{country}</span>
+                {index < arr.length - 1 && <span class="host-separator"> · </span>}
+              </span>
+            ))}
+          </p>
+          {worldcup.champion && (
+            <div class="champion-banner">
+              <span>🏆 <span class="country-flag" data-iso={getCountryCode(worldcup.champion) || ''} aria-hidden="true">⚑</span> <span class="country-name">{worldcup.champion}</span></span>
+            </div>
+          )}
+          {worldcup.upcoming && (
+            <div class="upcoming-badge" data-i18n="upcomingWorldCup">
+              Proximo Mundial 2026
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <section class="matches-section">
+      {orderedPhases.length === 0 && <p data-i18n="noMatches">No hay partidos cargados para este Mundial.</p>}
+
+      {orderedPhases.map(([phase, matches]) => (
+        <section class="phase-block">
+          <h2 data-phase={phase}>{phase}</h2>
+          <div class="match-grid">
+            {matches.map((match) => (
+              <article class="card match-card">
+                <p class="match-date" data-match-date={match.date}>{match.date}</p>
+                <p class="match-teams">
+                  <span class="match-team">
+                    <span class="country-flag" data-iso={getCountryCode(match.team1) || ''} aria-hidden="true">⚑</span>
+                    <span class="country-name">{match.team1}</span>
+                  </span>
+                  <span data-i18n="versus">vs</span>
+                  <span class="match-team">
+                    <span class="country-flag" data-iso={getCountryCode(match.team2) || ''} aria-hidden="true">⚑</span>
+                    <span class="country-name">{match.team2}</span>
+                  </span>
+                </p>
+                <p class="match-score">
+                  {match.score1 === null || match.score2 === null
+                    ? <span data-i18n="toBePlayed">Por jugar</span>
+                    : `${match.score1} - ${match.score2}`}
+                </p>
+                <p class="match-stadium">{match.stadium}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </section>
+  </main>
+</Layout>
