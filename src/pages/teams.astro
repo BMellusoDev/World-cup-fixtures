@@ -1,0 +1,478 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Selecciones — World Cup Fixtures">
+  <main class="container page-teams">
+    <h1 class="teams-title">Selecciones</h1>
+    <p class="subtitle">Busca una selección y ve todas sus participaciones en los Mundiales</p>
+
+    <div class="team-search-wrap">
+      <input
+        id="team-input"
+        type="search"
+        class="team-input"
+        placeholder="Escribe el nombre de una selección…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <ul id="team-suggestions" class="team-suggestions" hidden></ul>
+    </div>
+
+    <section id="team-results" hidden>
+      <div class="team-results-header">
+        <span class="team-flag-big" id="team-flag-big"></span>
+        <div>
+          <h2 id="team-results-name" class="team-results-name"></h2>
+          <p id="team-results-summary" class="team-results-summary"></p>
+        </div>
+      </div>
+
+      <div id="team-wcs" class="team-wcs"></div>
+    </section>
+
+    <p id="teams-no-result" class="teams-no-result" hidden>No se encontraron resultados.</p>
+  </main>
+</Layout>
+
+<script>
+(async () => {
+  // ── Load data ────────────────────────────────────────────────
+  const res  = await fetch('/data/worldcups.json');
+  const json = await res.json();
+  const worldcups = json.worldcups; // array sorted desc by year in our DB, but raw order here
+
+  // Build team → [{year, match, isHome}] index
+  const teamIndex = new Map(); // team name (lowercase) → { canonical, matches: [{year, match, isHome}] }
+
+  for (const wc of worldcups) {
+    for (const match of wc.matches || []) {
+      const slug1 = match.team1.toLowerCase();
+      const slug2 = match.team2.toLowerCase();
+      if (!teamIndex.has(slug1)) teamIndex.set(slug1, { canonical: match.team1, matches: [] });
+      if (!teamIndex.has(slug2)) teamIndex.set(slug2, { canonical: match.team2, matches: [] });
+      teamIndex.get(slug1).matches.push({ year: wc.year, match, isHome: true });
+      teamIndex.get(slug2).matches.push({ year: wc.year, match, isHome: false });
+    }
+  }
+
+  const allTeams = [...teamIndex.keys()].sort(); // sorted lowercase keys
+
+  // ── Elements ─────────────────────────────────────────────────
+  const input       = document.getElementById('team-input');
+  const suggestions = document.getElementById('team-suggestions');
+  const resultsEl   = document.getElementById('team-results');
+  const flagBigEl   = document.getElementById('team-flag-big');
+  const nameEl      = document.getElementById('team-results-name');
+  const summaryEl   = document.getElementById('team-results-summary');
+  const wcsEl       = document.getElementById('team-wcs');
+  const noResultEl  = document.getElementById('teams-no-result');
+
+  // ── Flag helper ──────────────────────────────────────────────
+  function flagEmoji(iso) {
+    if (!iso || iso.length !== 2) return '⚑';
+    return String.fromCodePoint(
+      ...iso.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0))
+    );
+  }
+
+  // Reuse the same alias map the server uses (minimal subset for client)
+  const ISO_MAP = {
+    argentina:'AR', australia:'AU', austria:'AT', belgium:'BE', bolivia:'BO',
+    'bosnia & herzegovina':'BA', 'bosnia and herzegovina':'BA', brazil:'BR',
+    bulgaria:'BG', cameroon:'CM', canada:'CA', chile:'CL', china:'CN',
+    colombia:'CO', 'costa rica':'CR', croatia:'HR', cuba:'CU', czechia:'CZ',
+    'czech republic':'CZ', 'south korea':'KR', 'korea republic':'KR',
+    'north korea':'KP', denmark:'DK', ecuador:'EC', egypt:'EG', england:'GB',
+    'united states':'US', usa:'US', spain:'ES', france:'FR', germany:'DE',
+    'west germany':'DE', ghana:'GH', greece:'GR', honduras:'HN', hungary:'HU',
+    iceland:'IS', iran:'IR', iraq:'IQ', ireland:'IE', italy:'IT', jamaica:'JM',
+    japan:'JP', mexico:'MX', morocco:'MA', netherlands:'NL', holland:'NL',
+    nigeria:'NG', norway:'NO', paraguay:'PY', peru:'PE', poland:'PL',
+    portugal:'PT', qatar:'QA', romania:'RO', russia:'RU', 'saudi arabia':'SA',
+    scotland:'GB', senegal:'SN', serbia:'RS', slovakia:'SK', slovenia:'SI',
+    'south africa':'ZA', sweden:'SE', switzerland:'CH', tunisia:'TN',
+    turkey:'TR', uruguay:'UY', venezuela:'VE', wales:'GB', yugoslavia:'RS',
+    'ivory coast':'CI', "cote d'ivoire":'CI', "côte d'ivoire":'CI',
+    'north macedonia':'MK', 'trinidad and tobago':'TT', 'trinidad & tobago':'TT',
+    'new zealand':'NZ', 'republic of ireland':'IE', 'soviet union':'RU',
+    'east germany':'DE', algeria:'DZ', angola:'AO', 'cape verde':'CV',
+    'congo dr':'CD', ghana:'GH', mali:'ML', togo:'TG', nigeria:'NG',
+    indonesia:'ID', 'dutch east indies':'ID', 'uae':'AE',
+    'united arab emirates':'AE', 'el salvador':'SV', haiti:'HT',
+    kuwait:'KW', panama:'PA', honduras:'HN',
+  };
+
+  function getISO(name) {
+    return ISO_MAP[name.toLowerCase()] || '';
+  }
+
+  // ── Autocomplete ─────────────────────────────────────────────
+  let activeIdx = -1;
+
+  function showSuggestions(query) {
+    const q = query.toLowerCase().trim();
+    if (!q) { suggestions.hidden = true; return; }
+
+    const matches = allTeams
+      .filter(t => t.includes(q))
+      .sort((a, b) => {
+        const ai = a.startsWith(q) ? 0 : 1;
+        const bi = b.startsWith(q) ? 0 : 1;
+        return ai - bi || a.localeCompare(b);
+      })
+      .slice(0, 8);
+
+    if (!matches.length) { suggestions.hidden = true; return; }
+
+    suggestions.innerHTML = '';
+    activeIdx = -1;
+    for (const key of matches) {
+      const canonical = teamIndex.get(key).canonical;
+      const iso = getISO(canonical);
+      const li = document.createElement('li');
+      li.className = 'suggestion-item';
+      li.innerHTML = `<span class="sug-flag">${flagEmoji(iso)}</span> <span class="country-name">${canonical}</span>`;
+      li.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        selectTeam(key);
+      });
+      suggestions.appendChild(li);
+    }
+    suggestions.hidden = false;
+  }
+
+  function selectTeam(key) {
+    const entry = teamIndex.get(key);
+    if (!entry) return;
+
+    input.value = entry.canonical;
+    suggestions.hidden = true;
+    noResultEl.hidden = true;
+    activeIdx = -1;
+
+    renderTeam(entry);
+  }
+
+  input.addEventListener('input', () => showSuggestions(input.value));
+  input.addEventListener('blur', () => setTimeout(() => { suggestions.hidden = true; }, 150));
+  input.addEventListener('focus', () => showSuggestions(input.value));
+
+  input.addEventListener('keydown', (e) => {
+    const items = suggestions.querySelectorAll('.suggestion-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      items.forEach((li, i) => li.classList.toggle('active', i === activeIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = Math.max(activeIdx - 1, 0);
+      items.forEach((li, i) => li.classList.toggle('active', i === activeIdx));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIdx >= 0 && items[activeIdx]) {
+        items[activeIdx].dispatchEvent(new MouseEvent('mousedown'));
+      } else {
+        // Try exact / closest match
+        const q = input.value.toLowerCase().trim();
+        const exact = allTeams.find(t => t === q) || allTeams.find(t => t.startsWith(q));
+        if (exact) selectTeam(exact);
+      }
+    } else if (e.key === 'Escape') {
+      suggestions.hidden = true;
+    }
+  });
+
+  // ── Render ───────────────────────────────────────────────────
+  function renderTeam(entry) {
+    const iso = getISO(entry.canonical);
+    const flag = flagEmoji(iso);
+
+    flagBigEl.textContent = flag;
+    nameEl.textContent    = entry.canonical;
+
+    // Group by year
+    const byYear = new Map();
+    for (const m of entry.matches) {
+      if (!byYear.has(m.year)) byYear.set(m.year, []);
+      byYear.get(m.year).push(m);
+    }
+
+    const years = [...byYear.keys()].sort((a, b) => b - a);
+    const wcCount = years.length;
+    const playedMatches = entry.matches.filter(m => m.match.score1 !== null);
+    const wins   = playedMatches.filter(m => {
+      const s1 = m.match.score1, s2 = m.match.score2;
+      return m.isHome ? s1 > s2 : s2 > s1;
+    }).length;
+    const draws  = playedMatches.filter(m => m.match.score1 === m.match.score2).length;
+    const losses = playedMatches.length - wins - draws;
+
+    summaryEl.textContent = `${wcCount} Mundial${wcCount !== 1 ? 'es' : ''} · ${playedMatches.length} partidos · ${wins}V ${draws}E ${losses}D`;
+
+    wcsEl.innerHTML = '';
+    for (const year of years) {
+      const mList = byYear.get(year);
+      const section = document.createElement('section');
+      section.className = 'team-wc-section';
+
+      const h3 = document.createElement('h3');
+      h3.className = 'team-wc-year';
+      h3.textContent = `Mundial ${year}`;
+      section.appendChild(h3);
+
+      const grid = document.createElement('div');
+      grid.className = 'team-wc-grid';
+
+      for (const { match, isHome } of mList) {
+        const opponent = isHome ? match.team2 : match.team1;
+        const oppISO   = getISO(opponent);
+        const hasScore = match.score1 !== null && match.score2 !== null;
+        const myScore  = hasScore ? (isHome ? match.score1 : match.score2) : null;
+        const oppScore = hasScore ? (isHome ? match.score2 : match.score1) : null;
+
+        let result = '';
+        if (hasScore) {
+          result = myScore > oppScore ? 'win' : myScore < oppScore ? 'loss' : 'draw';
+        }
+
+        const slug = `${year}-${match.id}`;
+        const card = document.createElement('a');
+        card.href = `/match/${slug}`;
+        card.className = `card team-match-card team-match-card--${result || 'upcoming'}`;
+
+        card.innerHTML = `
+          <p class="team-match-phase">${match.phase}</p>
+          <div class="team-match-body">
+            <span class="team-match-vs">vs</span>
+            <span class="team-match-team">${flagEmoji(oppISO)} <span class="country-name">${opponent}</span></span>
+            <span class="team-match-score-val team-match-score--${result || 'upcoming'}">
+              ${hasScore ? `${myScore} – ${oppScore}` : `<span class="score-tbd">Por jugar</span>`}
+            </span>
+          </div>
+          <p class="team-match-stadium">🏟 ${match.stadium}</p>
+        `;
+        grid.appendChild(card);
+      }
+
+      section.appendChild(grid);
+      wcsEl.appendChild(section);
+    }
+
+    resultsEl.hidden = false;
+  }
+})();
+</script>
+
+<style is:global>
+/* ── Override global .card inside team results ── */
+.team-wc-grid .card {
+  text-align: left;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+}
+
+.team-wc-grid .card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+
+.page-teams {
+  padding-top: 3rem;
+  padding-bottom: 4rem;
+}
+
+.teams-title {
+  background: linear-gradient(45deg, #ffd700, #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 900;
+}
+
+.team-search-wrap {
+  position: relative;
+  max-width: 520px;
+  margin: 2.5rem auto 0;
+}
+
+.team-input {
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.team-input::placeholder {
+  color: rgba(255,255,255,0.45);
+}
+
+.team-input:focus {
+  border-color: #ffd700;
+  background: rgba(255,255,255,0.15);
+}
+
+.team-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: rgba(9, 20, 52, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  list-style: none;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.2rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.1s;
+}
+
+.suggestion-item:hover,
+.suggestion-item.active {
+  background: rgba(255,255,255,0.1);
+}
+
+.sug-flag {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* ── Results ────────────────────────────────────────── */
+.team-results-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin: 3rem 0 1.5rem;
+}
+
+.team-flag-big {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+.team-results-name {
+  font-size: 1.8rem;
+  font-weight: 900;
+  background: linear-gradient(45deg, #ffd700, #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.2rem;
+}
+
+.team-results-summary {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.team-wc-section {
+  margin-top: 2rem;
+}
+
+.team-wc-year {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  opacity: 0.85;
+  border-left: 3px solid #ffd700;
+  padding-left: 0.6rem;
+}
+
+.team-wc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.75rem;
+}
+
+.team-match-card {
+  display: block;
+  text-decoration: none;
+  color: white;
+  padding: 1rem 1.2rem;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.team-match-card:hover {
+  transform: translateY(-4px);
+}
+
+.team-match-phase {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  word-spacing: -0.05em;
+  opacity: 0.6;
+  margin-bottom: 0.4rem;
+}
+
+.team-match-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.3rem 0;
+}
+
+.team-match-vs {
+  font-size: 0.7rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.team-match-team {
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.team-match-score-val {
+  font-weight: 900;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.team-match-score--win      { color: #4ade80; }
+.team-match-score--draw     { color: #ffd700; }
+.team-match-score--loss     { color: #f87171; }
+.team-match-score--upcoming { color: rgba(255,255,255,0.5); font-size: 0.8rem; font-weight: 400; }
+
+.team-match-stadium {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-top: 0.4rem;
+}
+
+.teams-no-result {
+  text-align: center;
+  opacity: 0.6;
+  margin-top: 2rem;
+}
+
+.team-match-card--win  { border-left: 3px solid #4ade80; }
+.team-match-card--draw { border-left: 3px solid #ffd700; }
+.team-match-card--loss { border-left: 3px solid #f87171; }
+.team-match-card--upcoming { border-left: 3px solid rgba(255,255,255,0.2); }
+</style>
