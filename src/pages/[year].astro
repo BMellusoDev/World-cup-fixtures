@@ -91,7 +91,7 @@ const orderedPhases = Object.entries(phaseGroups);
                   </p>
                   <p class="match-penalties" hidden></p>
                   <p class="match-stadium">{match.stadium}</p>
-                  <span class="match-more-btn">Saber más →</span>
+                  <span class="match-more-btn" data-i18n="learnMore">Saber más →</span>
                 </article>
               </a>
             ))}
@@ -116,7 +116,8 @@ const orderedPhases = Object.entries(phaseGroups);
         const { pen1, pen2 } = penalties[slug];
         const penEl = card.querySelector('.match-penalties');
         if (penEl) {
-          penEl.textContent = `(penaltis: ${pen1} – ${pen2})`;
+        const penLabel = (window._wcI18n && window._wcI18n.t('penalties')) || 'penaltis';
+          penEl.textContent = `(${penLabel}: ${pen1} – ${pen2})`;
           penEl.hidden = false;
         }
       }

@@ -4,8 +4,8 @@ import Layout from '../layouts/Layout.astro';
 
 <Layout title="Selecciones — World Cup Fixtures">
   <main class="container page-teams">
-    <h1 class="teams-title">Selecciones</h1>
-    <p class="subtitle">Busca una selección y ve todas sus participaciones en los Mundiales</p>
+    <h1 class="teams-title" data-i18n="teamsTitle">Selecciones</h1>
+    <p class="subtitle" data-i18n="teamsSubtitle">Busca una selección y ve todas sus participaciones en los Mundiales</p>
 
     <div class="team-search-wrap">
       <input
@@ -13,6 +13,7 @@ import Layout from '../layouts/Layout.astro';
         type="search"
         class="team-input"
         placeholder="Escribe el nombre de una selección…"
+        data-i18n-placeholder="teamsPlaceholder"
         autocomplete="off"
         spellcheck="false"
       />
@@ -31,7 +32,7 @@ import Layout from '../layouts/Layout.astro';
       <div id="team-wcs" class="team-wcs"></div>
     </section>
 
-    <p id="teams-no-result" class="teams-no-result" hidden>No se encontraron resultados.</p>
+    <p id="teams-no-result" class="teams-no-result" hidden data-i18n="teamsNoResult">No se encontraron resultados.</p>
   </main>
 </Layout>
 
@@ -185,6 +186,11 @@ import Layout from '../layouts/Layout.astro';
 
   // ── Render ───────────────────────────────────────────────────
   function renderTeam(entry) {
+    const i18n = window._wcI18n || {};
+    const t = i18n.t ? i18n.t.bind(i18n) : function(k) { return k; };
+    const locale = i18n.getLocale ? i18n.getLocale() : 'es';
+    const txPhase = i18n.translatePhase ? i18n.translatePhase.bind(i18n) : function(p) { return p; };
+
     const iso = getISO(entry.canonical);
     const flag = flagEmoji(iso);
 
@@ -208,7 +214,7 @@ import Layout from '../layouts/Layout.astro';
     const draws  = playedMatches.filter(m => m.match.score1 === m.match.score2).length;
     const losses = playedMatches.length - wins - draws;
 
-    summaryEl.textContent = `${wcCount} Mundial${wcCount !== 1 ? 'es' : ''} · ${playedMatches.length} partidos · ${wins}V ${draws}E ${losses}D`;
+    summaryEl.textContent = `${wcCount} ${wcCount !== 1 ? t('worldCups') : t('worldCup')} · ${playedMatches.length} ${t('matches')} · ${wins}${t('winAbbr')} ${draws}${t('drawAbbr')} ${losses}${t('lossAbbr')}`;
 
     wcsEl.innerHTML = '';
     for (const year of years) {
@@ -218,7 +224,7 @@ import Layout from '../layouts/Layout.astro';
 
       const h3 = document.createElement('h3');
       h3.className = 'team-wc-year';
-      h3.textContent = `Mundial ${year}`;
+      h3.textContent = `${t('worldCup')} ${year}`;
       section.appendChild(h3);
 
       const grid = document.createElement('div');
@@ -242,12 +248,12 @@ import Layout from '../layouts/Layout.astro';
         card.className = `card team-match-card team-match-card--${result || 'upcoming'}`;
 
         card.innerHTML = `
-          <p class="team-match-phase">${match.phase}</p>
+          <p class="team-match-phase">${txPhase(match.phase, locale)}</p>
           <div class="team-match-body">
             <span class="team-match-vs">vs</span>
             <span class="team-match-team">${flagEmoji(oppISO)} <span class="country-name">${opponent}</span></span>
             <span class="team-match-score-val team-match-score--${result || 'upcoming'}">
-              ${hasScore ? `${myScore} – ${oppScore}` : `<span class="score-tbd">Por jugar</span>`}
+              ${hasScore ? `${myScore} – ${oppScore}` : `<span class="score-tbd">${t('toBePlayed')}</span>`}
             </span>
           </div>
           <p class="team-match-stadium">🏟 ${match.stadium}</p>
