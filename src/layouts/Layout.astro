@@ -8,6 +8,18 @@ const { title } = Astro.props;
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width" />
   <title>{title}</title>
+  <!-- Open Graph / social preview -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://world-cup-fixtures.vercel.app/" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content="Todos los resultados históricos de los Mundiales de Fútbol + Mundial 2026" />
+  <meta property="og:image" content="https://world-cup-fixtures.vercel.app/posters/1930.jpg" />
+  <meta property="og:image:alt" content="World Cup Fixtures" />
+  <!-- Twitter card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content="Todos los resultados históricos de los Mundiales de Fútbol + Mundial 2026" />
+  <meta name="twitter:image" content="https://world-cup-fixtures.vercel.app/posters/1930.jpg" />
 </head>
 <body>
   <header class="site-header">
