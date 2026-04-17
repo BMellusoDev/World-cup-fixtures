@@ -29,12 +29,12 @@ const title = `${match.team1} vs ${match.team2} — Mundial ${year}`;
 <Layout title={title}>
   <main class="container page-match-detail">
 
-    <!-- Back button -->
-    <div class="back-nav">
-      <a href={`/${year}`} class="back-link">
-        ← Mundial {year}
-      </a>
-    </div>
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb-nav">
+      <a href="/" class="breadcrumb-link">Inicio</a>
+      <span class="breadcrumb-sep">/</span>
+      <a href={`/${year}`} class="breadcrumb-link">Mundial {year}</a>
+    </nav>
 
     <!-- Match header -->
     <header class="match-detail-header card">
@@ -68,7 +68,7 @@ const title = `${match.team1} vs ${match.team2} — Mundial ${year}`;
       <div id="match-detail-data" data-match-slug={`${year}-${match.id}`}>
 
         <div id="detail-loading" class="detail-loading">
-          <div class="loading-spinner"></div>
+          <div class="loading-ball">⚽</div>
           <p>Cargando detalles del partido...</p>
         </div>
 

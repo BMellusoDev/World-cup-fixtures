@@ -60,31 +60,28 @@ body {
 }
 
 .site-header-inner {
-  min-height: 58px;
+  min-height: 80px;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .site-logo {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  color: white;
   text-decoration: none;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  font-size: 0.98rem;
 }
 
-.site-logo-ball {
-  display: inline-block;
-  line-height: 1;
-  transform: translateY(-1px);
+.site-logo-img {
+  height: 70px;
+  width: auto;
+  display: block;
+  transition: transform 0.15s, opacity 0.15s;
 }
 
-.site-logo:hover {
+.site-logo:hover .site-logo-img {
   opacity: 0.9;
+  transform: scale(1.04);
 }
 
 .container {
@@ -174,7 +171,32 @@ h1 {
 
 .year-header-content {
   position: relative;
-  z-index: 2;
+  z-index: 2;}
+
+.breadcrumb-nav {
+  margin: 1.5rem 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.08rem;
+}
+
+.breadcrumb-link {
+  color: #ffd700;
+  text-decoration: none;
+  font-weight: 600;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+
+.breadcrumb-link:hover {
+  opacity: 1;
+}
+
+.breadcrumb-sep {
+  opacity: 0.5;
+  font-size: 1.1em;
+  margin: 0 0.2em;
 }
 
 .year-title {
@@ -374,6 +396,7 @@ h1 {
   opacity: 0.7;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  word-spacing: -0.06em;
   margin-bottom: 0.25rem;
 }
 
@@ -462,6 +485,7 @@ h1 {
   opacity: 0.7;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  word-spacing: -0.05em;
   margin-bottom: 0.6rem;
 }
 
@@ -600,18 +624,21 @@ h1 {
   opacity: 0.7;
 }
 
-.loading-spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.loading-ball {
+  font-size: 2.8rem;
+  display: block;
   margin: 0 auto 1rem;
+  animation: ball-bounce 0.7s ease-in-out infinite alternate, ball-spin 1.2s linear infinite;
+  transform-origin: center;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes ball-bounce {
+  from { transform: translateY(0) rotate(0deg); }
+  to   { transform: translateY(-18px) rotate(180deg); }
+}
+
+@keyframes ball-spin {
+  to { filter: hue-rotate(0deg); }
 }
 
 .no-detail-msg {
