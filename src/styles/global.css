@@ -505,6 +505,23 @@ h1 {
   font-size: 0.9rem;
 }
 
+.match-date-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.match-time {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .match-teams {
   font-weight: 700;
   font-size: 1.1rem;
@@ -525,6 +542,12 @@ h1 {
 .match-stadium {
   margin-top: 0.5rem;
   opacity: 0.9;
+}
+
+.match-coaches {
+  margin-top: 0.35rem;
+  opacity: 0.82;
+  font-size: 0.82rem;
 }
 
 .match-penalties {
@@ -628,7 +651,22 @@ h1 {
 .match-detail-date {
   font-size: 0.9rem;
   opacity: 0.85;
+}
+
+.match-detail-date-wrap {
   margin-bottom: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.match-detail-time {
+  font-size: 0.82rem;
+  opacity: 0.85;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  padding: 0.16rem 0.55rem;
+  white-space: nowrap;
 }
 
 .match-detail-teams {
@@ -829,6 +867,23 @@ h1 {
   opacity: 0.75;
 }
 
+/* ── Managers ──────────────────────────────────────────────── */
+.manager-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.manager-list--right {
+  text-align: right;
+}
+
+.manager-item {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
 /* ── Referees ───────────────────────────────────────────────── */
 .referee-list {
   list-style: none;
@@ -907,5 +962,257 @@ h1 {
   .goals-col-header--right,
   .event-list--right {
     text-align: left;
+  }
+}
+
+/* ── Shared buttons ────────────────────────────────────────── */
+.btn {
+  appearance: none;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: linear-gradient(45deg, rgba(255, 215, 0, 0.18), rgba(255, 107, 53, 0.18));
+  color: white;
+  border-radius: 10px;
+  padding: 0.55rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s, background 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  opacity: 1;
+}
+
+.btn-ghost {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-small {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+/* ── Predictions page ──────────────────────────────────────── */
+.page-predictions {
+  padding-top: 2.5rem;
+  padding-bottom: 4rem;
+}
+
+.predictions-hero--compact h1 {
+  margin-bottom: 0.5rem;
+}
+
+.predictions-subtitle {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.predictions-kicker {
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0.78;
+  margin-bottom: 0.45rem;
+}
+
+.predictions-meta {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.meta-pill {
+  font-size: 0.76rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  opacity: 0.9;
+}
+
+.predictions-grid-top {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.predictions-panel,
+.predictions-league,
+.predictions-results,
+.predictions-board,
+.predictions-roadmap {
+  margin-top: 1rem;
+}
+
+.predictions-panel h2,
+.predictions-league h2,
+.predictions-results h2,
+.predictions-board h2,
+.predictions-roadmap h2 {
+  margin-bottom: 1rem;
+}
+
+.form-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.form-stack label,
+.league-controls label,
+.result-controls label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.84rem;
+  text-align: left;
+  opacity: 0.9;
+}
+
+.form-stack input,
+.league-controls select,
+.result-controls input,
+.result-controls select,
+.score-inputs input {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.form-stack input::placeholder {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.league-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.league-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.league-controls {
+  margin-top: 0.9rem;
+}
+
+.muted {
+  opacity: 0.76;
+  font-size: 0.85rem;
+}
+
+.status-msg {
+  margin-top: 0.9rem;
+  font-size: 0.88rem;
+  min-height: 1.2em;
+}
+
+.status-msg[data-tone="error"] {
+  color: #fecaca;
+}
+
+.status-msg[data-tone="warn"] {
+  color: #fde68a;
+}
+
+.result-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(80px, 110px)) auto auto;
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.board-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.pred-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pred-table th,
+.pred-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.55rem 0.45rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.pred-table th {
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.cell-sub {
+  opacity: 0.68;
+  font-size: 0.76rem;
+  margin-top: 0.2rem;
+}
+
+.score-inputs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.score-inputs input {
+  width: 3.4rem;
+  text-align: center;
+  padding: 0.35rem;
+}
+
+.predictions-roadmap ul {
+  margin-left: 1rem;
+  display: grid;
+  gap: 0.4rem;
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .predictions-grid-top {
+    grid-template-columns: 1fr;
+  }
+
+  .result-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .result-controls label:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .result-controls button {
+    width: 100%;
   }
 }

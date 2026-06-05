@@ -99,9 +99,12 @@ async function getYearMatches(year) {
     id: index + 1,
     phase: phaseFromMatch(match),
     date: match.date || null,
+    time: match.time || null,
     stadium: match.ground || 'N/A',
     team1: match.team1 || 'TBD',
     team2: match.team2 || 'TBD',
+    coach1: null,
+    coach2: null,
     score1: Array.isArray(match.score?.ft) ? match.score.ft[0] : null,
     score2: Array.isArray(match.score?.ft) ? match.score.ft[1] : null
   }));

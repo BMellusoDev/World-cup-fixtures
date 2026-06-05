@@ -1,0 +1,907 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { db } from '../lib/db.js';
+
+const worldcups = db.getWorldCups();
+const upcoming = worldcups.find((wc) => wc.upcoming) || worldcups[0];
+const seasonYear = upcoming?.year || 2026;
+const matches = (upcoming?.matches || []).map((match) => ({
+  key: `${seasonYear}-${match.id}`,
+  id: match.id,
+  phase: match.phase || 'Otros',
+  date: match.date || '',
+  stadium: match.stadium || '',
+  team1: match.team1 || '',
+  team2: match.team2 || '',
+  score1: match.score1,
+  score2: match.score2
+}));
+
+const poolBootstrap = JSON.stringify({
+  matches,
+  seasonYear,
+  supabaseUrl: import.meta.env.PUBLIC_SUPABASE_URL || '',
+  supabaseAnonKey: import.meta.env.PUBLIC_SUPABASE_ANON_KEY || ''
+});
+---
+
+<Layout title="Pronosticos | World Cup Fixtures">
+  <main class="container page-predictions">
+    <section class="card predictions-hero predictions-hero--compact">
+      <p class="predictions-kicker">Porra con amigos</p>
+      <h1>Pronosticos</h1>
+      <p class="subtitle predictions-subtitle">
+        Crea una liga, suma participantes y carga pronosticos por partido.
+        El ranking se calcula automaticamente: 3 puntos exacto, 1 punto resultado.
+      </p>
+      <div class="predictions-meta">
+        <span class="meta-pill">Mundial {seasonYear}</span>
+        <span class="meta-pill">Partidos {matches.length}</span>
+        <span class="meta-pill" id="pool-mode-pill">Modo: iniciando</span>
+      </div>
+    </section>
+
+    <section class="predictions-grid-top">
+      <section class="card predictions-panel">
+        <h2>Crear liga</h2>
+        <form id="create-league-form" class="form-stack">
+          <label>
+            Nombre de la liga
+            <input id="create-league-name" type="text" maxlength="50" placeholder="Ej: Amigos del barrio" required />
+          </label>
+          <label>
+            Tu nombre
+            <input id="create-player-name" type="text" maxlength="30" placeholder="Ej: Bruno" required />
+          </label>
+          <button class="btn" type="submit">Crear liga</button>
+        </form>
+      </section>
+
+      <section class="card predictions-panel">
+        <h2>Unirse a liga</h2>
+        <form id="join-league-form" class="form-stack">
+          <label>
+            Codigo
+            <input id="join-league-code" type="text" maxlength="8" placeholder="Ej: A7K2QZ" required />
+          </label>
+          <label>
+            Tu nombre
+            <input id="join-player-name" type="text" maxlength="30" placeholder="Ej: Carla" required />
+          </label>
+          <button class="btn btn-ghost" type="submit">Unirme</button>
+        </form>
+      </section>
+    </section>
+
+    <section class="card predictions-league" id="league-card" hidden>
+      <div class="league-head">
+        <div>
+          <p class="muted">Liga activa</p>
+          <h2 id="league-title">-</h2>
+          <p class="muted">Codigo: <strong id="league-code">-</strong></p>
+        </div>
+        <div class="league-actions">
+          <button id="copy-code-btn" class="btn btn-small" type="button">Copiar codigo</button>
+          <button id="sync-btn" class="btn btn-small" type="button">Sincronizar</button>
+          <button id="leave-league-btn" class="btn btn-ghost btn-small" type="button">Salir de liga</button>
+        </div>
+      </div>
+
+      <div class="league-controls">
+        <label>
+          Jugador activo
+          <select id="active-player-select"></select>
+        </label>
+      </div>
+
+      <p id="status-msg" class="status-msg" aria-live="polite"></p>
+    </section>
+
+    <section class="card predictions-results" id="results-card" hidden>
+      <h2>Cargar resultado real</h2>
+      <div class="result-controls">
+        <label>
+          Partido
+          <select id="result-match-select"></select>
+        </label>
+        <label>
+          Local
+          <input id="result-home-score" type="number" min="0" max="20" />
+        </label>
+        <label>
+          Visitante
+          <input id="result-away-score" type="number" min="0" max="20" />
+        </label>
+        <button id="save-result-btn" class="btn" type="button">Guardar resultado</button>
+        <button id="clear-result-btn" class="btn btn-ghost" type="button">Borrar resultado</button>
+      </div>
+    </section>
+
+    <section class="card predictions-board" id="board-card" hidden>
+      <h2>Tabla de posiciones</h2>
+      <div class="table-wrap">
+        <table class="pred-table" id="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jugador</th>
+              <th>Puntos</th>
+              <th>Exactos</th>
+              <th>Aciertos</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card predictions-board" id="predictions-card" hidden>
+      <div class="board-head">
+        <h2>Mis pronosticos</h2>
+        <button id="save-predictions-btn" class="btn" type="button">Guardar pronosticos</button>
+      </div>
+      <div class="table-wrap">
+        <table class="pred-table pred-table--matches" id="matches-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Partido</th>
+              <th>Fase</th>
+              <th>Tu pronostico</th>
+              <th>Resultado</th>
+              <th>Puntos</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card predictions-roadmap">
+      <h2>Reglas</h2>
+      <ul>
+        <li>3 puntos por marcador exacto.</li>
+        <li>1 punto por acertar ganador o empate.</li>
+        <li>0 puntos en cualquier otro caso.</li>
+        <li>Con Supabase configurado la liga es compartida entre dispositivos.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script id="pool-bootstrap" type="application/json" set:html={poolBootstrap}></script>
+</Layout>
+
+<script>
+  // @ts-nocheck
+  import { createClient } from '@supabase/supabase-js';
+
+  (() => {
+    const rawBootstrap = document.getElementById('pool-bootstrap')?.textContent || '{}';
+    const { matches = [], seasonYear = 2026, supabaseUrl = '', supabaseAnonKey = '' } = JSON.parse(rawBootstrap);
+
+    const ACTIVE_KEY = 'wcf.pool.active.v1';
+    const LOCAL_KEY = 'wcf.pool.local.v1';
+    const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+    const modePill = document.getElementById('pool-mode-pill');
+    const createForm = document.getElementById('create-league-form');
+    const joinForm = document.getElementById('join-league-form');
+    const createLeagueName = document.getElementById('create-league-name');
+    const createPlayerName = document.getElementById('create-player-name');
+    const joinLeagueCode = document.getElementById('join-league-code');
+    const joinPlayerName = document.getElementById('join-player-name');
+
+    const leagueCard = document.getElementById('league-card');
+    const resultsCard = document.getElementById('results-card');
+    const boardCard = document.getElementById('board-card');
+    const predictionsCard = document.getElementById('predictions-card');
+    const leagueTitle = document.getElementById('league-title');
+    const leagueCode = document.getElementById('league-code');
+    const activePlayerSelect = document.getElementById('active-player-select');
+    const statusMsg = document.getElementById('status-msg');
+
+    const copyCodeBtn = document.getElementById('copy-code-btn');
+    const syncBtn = document.getElementById('sync-btn');
+    const leaveLeagueBtn = document.getElementById('leave-league-btn');
+
+    const resultMatchSelect = document.getElementById('result-match-select');
+    const resultHomeScore = document.getElementById('result-home-score');
+    const resultAwayScore = document.getElementById('result-away-score');
+    const saveResultBtn = document.getElementById('save-result-btn');
+    const clearResultBtn = document.getElementById('clear-result-btn');
+
+    const savePredictionsBtn = document.getElementById('save-predictions-btn');
+    const matchesTableBody = document.querySelector('#matches-table tbody');
+    const leaderboardBody = document.querySelector('#leaderboard-table tbody');
+
+    const supabaseEnabled = !!supabaseUrl && !!supabaseAnonKey;
+    const supabase = supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+    const baseResults = Object.fromEntries(
+      matches
+        .filter((m) => m.score1 !== null && m.score2 !== null)
+        .map((m) => [m.key, { score1: Number(m.score1), score2: Number(m.score2) }])
+    );
+
+    const state = {
+      mode: supabaseEnabled ? 'remote' : 'local',
+      active: loadActive(),
+      localStore: loadLocalStore(),
+      league: null,
+      members: [],
+      predictionsByMember: {},
+      results: {}
+    };
+
+    function loadActive() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(ACTIVE_KEY) || '{}');
+        return {
+          code: parsed.code || null,
+          memberId: parsed.memberId || null
+        };
+      } catch {
+        return { code: null, memberId: null };
+      }
+    }
+
+    function saveActive() {
+      localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.active));
+    }
+
+    function loadLocalStore() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+        return {
+          leagues: parsed.leagues || {}
+        };
+      } catch {
+        return { leagues: {} };
+      }
+    }
+
+    function saveLocalStore() {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(state.localStore));
+    }
+
+    function generateCode() {
+      let output = '';
+      for (let i = 0; i < 6; i += 1) {
+        output += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+      }
+      return output;
+    }
+
+    function parseScore(value) {
+      if (value === '' || value === null || value === undefined) return null;
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < 0) return null;
+      return n;
+    }
+
+    function normalizeCode(value) {
+      return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    }
+
+    function slugifyName(name) {
+      return String(name || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 24) || 'jugador';
+    }
+
+    function memberIdForName(name, members) {
+      const base = slugifyName(name);
+      const used = new Set((members || []).map((m) => m.id));
+      let candidate = base;
+      let idx = 2;
+      while (used.has(candidate)) {
+        candidate = `${base}-${idx}`;
+        idx += 1;
+      }
+      return candidate;
+    }
+
+    function setStatus(message, tone = 'ok') {
+      statusMsg.textContent = message;
+      statusMsg.dataset.tone = tone;
+    }
+
+    function formatDate(value) {
+      const d = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(d.getTime())) return value || '-';
+      return new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short' }).format(d);
+    }
+
+    function pickResult(matchKey) {
+      return state.results[matchKey] || baseResults[matchKey] || null;
+    }
+
+    function outcome(score1, score2) {
+      if (score1 === score2) return 'D';
+      return score1 > score2 ? 'H' : 'A';
+    }
+
+    function pointsForPrediction(prediction, realResult) {
+      if (!prediction || !realResult) return 0;
+      if (prediction.score1 === realResult.score1 && prediction.score2 === realResult.score2) {
+        return 3;
+      }
+      return outcome(prediction.score1, prediction.score2) === outcome(realResult.score1, realResult.score2) ? 1 : 0;
+    }
+
+    async function refreshState() {
+      if (!state.active.code) {
+        state.league = null;
+        state.members = [];
+        state.predictionsByMember = {};
+        state.results = {};
+        render();
+        return;
+      }
+
+      if (state.mode === 'remote') {
+        await refreshRemoteState();
+      } else {
+        refreshLocalState();
+      }
+      render();
+    }
+
+    async function refreshRemoteState() {
+      if (!supabase) return;
+
+      const { data: league, error: leagueError } = await supabase
+        .from('pool_leagues')
+        .select('id,code,name,season_year')
+        .eq('code', state.active.code)
+        .maybeSingle();
+
+      if (leagueError || !league) {
+        state.active.code = null;
+        state.active.memberId = null;
+        saveActive();
+        state.league = null;
+        state.members = [];
+        state.predictionsByMember = {};
+        state.results = {};
+        setStatus('No se encontro la liga en Supabase.', 'error');
+        return;
+      }
+
+      state.league = {
+        id: league.id,
+        code: league.code,
+        name: league.name,
+        seasonYear: league.season_year
+      };
+
+      const [{ data: membersData, error: membersError }, { data: resultsData, error: resultsError }, { data: predData, error: predError }] = await Promise.all([
+        supabase.from('pool_members').select('id,display_name').eq('league_id', league.id).order('created_at', { ascending: true }),
+        supabase.from('pool_results').select('match_key,score_home,score_away').eq('league_id', league.id),
+        supabase.from('pool_predictions').select('member_id,match_key,pred_home,pred_away').eq('league_id', league.id)
+      ]);
+
+      if (membersError || resultsError || predError) {
+        setStatus('Error al sincronizar datos de la liga.', 'error');
+      }
+
+      state.members = (membersData || []).map((m) => ({ id: m.id, name: m.display_name }));
+
+      if (!state.members.some((m) => m.id === state.active.memberId) && state.members[0]) {
+        state.active.memberId = state.members[0].id;
+        saveActive();
+      }
+
+      state.results = Object.fromEntries(
+        (resultsData || []).map((r) => [r.match_key, { score1: Number(r.score_home), score2: Number(r.score_away) }])
+      );
+
+      state.predictionsByMember = {};
+      for (const row of predData || []) {
+        if (!state.predictionsByMember[row.member_id]) {
+          state.predictionsByMember[row.member_id] = {};
+        }
+        state.predictionsByMember[row.member_id][row.match_key] = {
+          score1: Number(row.pred_home),
+          score2: Number(row.pred_away)
+        };
+      }
+    }
+
+    function refreshLocalState() {
+      const league = state.localStore.leagues[state.active.code];
+      if (!league) {
+        state.active.code = null;
+        state.active.memberId = null;
+        saveActive();
+        state.league = null;
+        state.members = [];
+        state.predictionsByMember = {};
+        state.results = {};
+        return;
+      }
+
+      state.league = {
+        id: league.id,
+        code: league.code,
+        name: league.name,
+        seasonYear: league.seasonYear
+      };
+      state.members = league.members || [];
+      state.results = league.results || {};
+      state.predictionsByMember = league.predictionsByMember || {};
+
+      if (!state.members.some((m) => m.id === state.active.memberId) && state.members[0]) {
+        state.active.memberId = state.members[0].id;
+        saveActive();
+      }
+    }
+
+    async function createLeague(name, ownerName) {
+      if (state.mode === 'remote') {
+        await createLeagueRemote(name, ownerName);
+      } else {
+        createLeagueLocal(name, ownerName);
+      }
+      await refreshState();
+    }
+
+    async function createLeagueRemote(name, ownerName) {
+      if (!supabase) return;
+
+      let createdLeague = null;
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const code = generateCode();
+        const { data, error } = await supabase
+          .from('pool_leagues')
+          .insert({ code, name, season_year: seasonYear })
+          .select('id,code,name,season_year')
+          .maybeSingle();
+
+        if (!error && data) {
+          createdLeague = data;
+          break;
+        }
+      }
+
+      if (!createdLeague) {
+        setStatus('No se pudo crear la liga en Supabase.', 'error');
+        return;
+      }
+
+      const { data: member, error: memberError } = await supabase
+        .from('pool_members')
+        .insert({ league_id: createdLeague.id, display_name: ownerName })
+        .select('id,display_name')
+        .maybeSingle();
+
+      if (memberError || !member) {
+        setStatus('La liga se creo, pero fallo el alta de jugador.', 'error');
+        return;
+      }
+
+      state.active.code = createdLeague.code;
+      state.active.memberId = member.id;
+      saveActive();
+      setStatus(`Liga creada: ${createdLeague.name} (${createdLeague.code})`);
+    }
+
+    function createLeagueLocal(name, ownerName) {
+      let code = generateCode();
+      while (state.localStore.leagues[code]) {
+        code = generateCode();
+      }
+
+      const memberId = slugifyName(ownerName);
+      state.localStore.leagues[code] = {
+        id: code,
+        code,
+        name,
+        seasonYear,
+        members: [{ id: memberId, name: ownerName }],
+        predictionsByMember: {},
+        results: {}
+      };
+
+      state.active.code = code;
+      state.active.memberId = memberId;
+      saveActive();
+      saveLocalStore();
+      setStatus(`Liga local creada: ${name} (${code})`, 'warn');
+    }
+
+    async function joinLeague(codeRaw, playerName) {
+      const code = normalizeCode(codeRaw);
+      if (!code) {
+        setStatus('Codigo invalido.', 'error');
+        return;
+      }
+
+      if (state.mode === 'remote') {
+        await joinLeagueRemote(code, playerName);
+      } else {
+        joinLeagueLocal(code, playerName);
+      }
+      await refreshState();
+    }
+
+    async function joinLeagueRemote(code, playerName) {
+      if (!supabase) return;
+
+      const { data: league, error: leagueError } = await supabase
+        .from('pool_leagues')
+        .select('id,code,name')
+        .eq('code', code)
+        .maybeSingle();
+
+      if (leagueError || !league) {
+        setStatus('No existe una liga con ese codigo.', 'error');
+        return;
+      }
+
+      const { data: existing } = await supabase
+        .from('pool_members')
+        .select('id,display_name')
+        .eq('league_id', league.id)
+        .eq('display_name', playerName)
+        .maybeSingle();
+
+      let memberId = existing?.id || null;
+      if (!memberId) {
+        const { data: inserted, error: insertError } = await supabase
+          .from('pool_members')
+          .insert({ league_id: league.id, display_name: playerName })
+          .select('id,display_name')
+          .maybeSingle();
+
+        if (insertError || !inserted) {
+          setStatus('No se pudo unir el jugador a la liga.', 'error');
+          return;
+        }
+
+        memberId = inserted.id;
+      }
+
+      state.active.code = league.code;
+      state.active.memberId = memberId;
+      saveActive();
+      setStatus(`Te uniste a ${league.name}.`);
+    }
+
+    function joinLeagueLocal(code, playerName) {
+      const league = state.localStore.leagues[code];
+      if (!league) {
+        setStatus('No existe una liga local con ese codigo.', 'error');
+        return;
+      }
+
+      const existing = (league.members || []).find((m) => m.name.toLowerCase() === playerName.toLowerCase());
+      let memberId = existing?.id || null;
+
+      if (!memberId) {
+        memberId = memberIdForName(playerName, league.members);
+        league.members.push({ id: memberId, name: playerName });
+      }
+
+      state.active.code = code;
+      state.active.memberId = memberId;
+      saveActive();
+      saveLocalStore();
+      setStatus(`Te uniste a ${league.name}.`, 'warn');
+    }
+
+    async function savePredictions() {
+      if (!state.league || !state.active.memberId) return;
+
+      const rows = [];
+      const wrappers = matchesTableBody.querySelectorAll('.score-inputs');
+      wrappers.forEach((wrapper) => {
+        const key = wrapper.getAttribute('data-match-key');
+        const homeInput = wrapper.querySelector('input[data-side="home"]');
+        const awayInput = wrapper.querySelector('input[data-side="away"]');
+        const home = parseScore(homeInput ? homeInput.value : '');
+        const away = parseScore(awayInput ? awayInput.value : '');
+        if (key && home !== null && away !== null) {
+          rows.push({ match_key: key, pred_home: home, pred_away: away });
+        }
+      });
+
+      if (state.mode === 'remote') {
+        if (!supabase) return;
+
+        await supabase
+          .from('pool_predictions')
+          .delete()
+          .eq('league_id', state.league.id)
+          .eq('member_id', state.active.memberId);
+
+        if (rows.length) {
+          const payload = rows.map((r) => ({
+            league_id: state.league.id,
+            member_id: state.active.memberId,
+            match_key: r.match_key,
+            pred_home: r.pred_home,
+            pred_away: r.pred_away
+          }));
+
+          const { error } = await supabase.from('pool_predictions').insert(payload);
+          if (error) {
+            setStatus('No se pudieron guardar los pronosticos.', 'error');
+            return;
+          }
+        }
+      } else {
+        const league = state.localStore.leagues[state.active.code];
+        if (!league.predictionsByMember[state.active.memberId]) {
+          league.predictionsByMember[state.active.memberId] = {};
+        }
+
+        league.predictionsByMember[state.active.memberId] = Object.fromEntries(
+          rows.map((r) => [r.match_key, { score1: r.pred_home, score2: r.pred_away }])
+        );
+        saveLocalStore();
+      }
+
+      setStatus('Pronosticos guardados.');
+      await refreshState();
+    }
+
+    async function saveManualResult() {
+      if (!state.league) return;
+
+      const key = resultMatchSelect.value;
+      const home = parseScore(resultHomeScore.value);
+      const away = parseScore(resultAwayScore.value);
+
+      if (!key || home === null || away === null) {
+        setStatus('Ingresa resultado valido para guardar.', 'error');
+        return;
+      }
+
+      if (state.mode === 'remote') {
+        if (!supabase) return;
+
+        const { error } = await supabase
+          .from('pool_results')
+          .upsert(
+            {
+              league_id: state.league.id,
+              match_key: key,
+              score_home: home,
+              score_away: away
+            },
+            { onConflict: 'league_id,match_key' }
+          );
+
+        if (error) {
+          setStatus('No se pudo guardar el resultado.', 'error');
+          return;
+        }
+      } else {
+        const league = state.localStore.leagues[state.active.code];
+        league.results[key] = { score1: home, score2: away };
+        saveLocalStore();
+      }
+
+      setStatus('Resultado guardado.');
+      await refreshState();
+    }
+
+    async function clearManualResult() {
+      if (!state.league) return;
+      const key = resultMatchSelect.value;
+      if (!key) return;
+
+      if (state.mode === 'remote') {
+        if (!supabase) return;
+
+        const { error } = await supabase
+          .from('pool_results')
+          .delete()
+          .eq('league_id', state.league.id)
+          .eq('match_key', key);
+
+        if (error) {
+          setStatus('No se pudo borrar el resultado.', 'error');
+          return;
+        }
+      } else {
+        const league = state.localStore.leagues[state.active.code];
+        delete league.results[key];
+        saveLocalStore();
+      }
+
+      setStatus('Resultado manual borrado.');
+      await refreshState();
+    }
+
+    function leaveLeague() {
+      state.active.code = null;
+      state.active.memberId = null;
+      saveActive();
+      setStatus('Saliste de la liga activa.');
+      refreshState();
+    }
+
+    function render() {
+      const hasLeague = !!state.league;
+      leagueCard.hidden = !hasLeague;
+      resultsCard.hidden = !hasLeague;
+      boardCard.hidden = !hasLeague;
+      predictionsCard.hidden = !hasLeague;
+
+      modePill.textContent = state.mode === 'remote' ? 'Modo: compartido (Supabase)' : 'Modo: local (fallback)';
+
+      if (!hasLeague) {
+        return;
+      }
+
+      leagueTitle.textContent = state.league.name;
+      leagueCode.textContent = state.league.code;
+
+      renderPlayerSelect();
+      renderResultsSelector();
+      renderMatchesTable();
+      renderLeaderboard();
+    }
+
+    function renderPlayerSelect() {
+      activePlayerSelect.innerHTML = state.members
+        .map((member) => `<option value="${member.id}">${member.name}</option>`)
+        .join('');
+
+      if (!state.members.some((m) => m.id === state.active.memberId) && state.members[0]) {
+        state.active.memberId = state.members[0].id;
+        saveActive();
+      }
+
+      activePlayerSelect.value = state.active.memberId || '';
+    }
+
+    function renderResultsSelector() {
+      const options = matches
+        .map((match) => {
+          const result = pickResult(match.key);
+          const suffix = result ? ` (${result.score1}-${result.score2})` : '';
+          return `<option value="${match.key}">${match.team1} vs ${match.team2}${suffix}</option>`;
+        })
+        .join('');
+      resultMatchSelect.innerHTML = options;
+    }
+
+    function renderMatchesTable() {
+      const memberPredictions = state.predictionsByMember[state.active.memberId] || {};
+
+      matchesTableBody.innerHTML = matches
+        .map((match) => {
+          const pred = memberPredictions[match.key];
+          const real = pickResult(match.key);
+          const points = pointsForPrediction(pred, real);
+          const pred1 = pred?.score1 ?? '';
+          const pred2 = pred?.score2 ?? '';
+          const realText = real ? `${real.score1}-${real.score2}` : 'Pendiente';
+
+          return `
+            <tr>
+              <td>${formatDate(match.date)}</td>
+              <td>
+                <strong>${match.team1}</strong> vs <strong>${match.team2}</strong>
+                <div class="cell-sub">${match.stadium}</div>
+              </td>
+              <td>${match.phase}</td>
+              <td>
+                <div class="score-inputs" data-match-key="${match.key}">
+                  <input type="number" min="0" max="20" data-side="home" value="${pred1}" />
+                  <span>-</span>
+                  <input type="number" min="0" max="20" data-side="away" value="${pred2}" />
+                </div>
+              </td>
+              <td>${realText}</td>
+              <td>${points}</td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+
+    function renderLeaderboard() {
+      const rows = state.members.map((member) => {
+        const memberPredictions = state.predictionsByMember[member.id] || {};
+        let points = 0;
+        let exact = 0;
+        let hits = 0;
+
+        for (const match of matches) {
+          const pred = memberPredictions[match.key];
+          const real = pickResult(match.key);
+          if (!pred || !real) continue;
+          const pts = pointsForPrediction(pred, real);
+          points += pts;
+          if (pts === 3) exact += 1;
+          if (pts > 0) hits += 1;
+        }
+
+        return { member, points, exact, hits };
+      });
+
+      rows.sort((a, b) => b.points - a.points || b.exact - a.exact || b.hits - a.hits || a.member.name.localeCompare(b.member.name));
+
+      leaderboardBody.innerHTML = rows
+        .map((row, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${row.member.name}</td>
+            <td>${row.points}</td>
+            <td>${row.exact}</td>
+            <td>${row.hits}</td>
+          </tr>
+        `)
+        .join('');
+    }
+
+    createForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const leagueName = createLeagueName.value.trim();
+      const playerName = createPlayerName.value.trim();
+      if (!leagueName || !playerName) {
+        setStatus('Completa nombre de liga y jugador.', 'error');
+        return;
+      }
+      await createLeague(leagueName, playerName);
+      createForm.reset();
+    });
+
+    joinForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const code = joinLeagueCode.value.trim();
+      const name = joinPlayerName.value.trim();
+      if (!code || !name) {
+        setStatus('Completa codigo y nombre para unirte.', 'error');
+        return;
+      }
+      await joinLeague(code, name);
+      joinForm.reset();
+    });
+
+    activePlayerSelect.addEventListener('change', () => {
+      state.active.memberId = activePlayerSelect.value;
+      saveActive();
+      renderMatchesTable();
+      renderLeaderboard();
+    });
+
+    savePredictionsBtn.addEventListener('click', savePredictions);
+    saveResultBtn.addEventListener('click', saveManualResult);
+    clearResultBtn.addEventListener('click', clearManualResult);
+    leaveLeagueBtn.addEventListener('click', leaveLeague);
+    syncBtn.addEventListener('click', refreshState);
+
+    copyCodeBtn.addEventListener('click', async () => {
+      const code = state.active.code;
+      if (!code) return;
+
+      try {
+        await navigator.clipboard.writeText(code);
+        setStatus(`Codigo ${code} copiado.`);
+      } catch {
+        setStatus(`Codigo: ${code}`, 'warn');
+      }
+    });
+
+    if (!supabaseEnabled) {
+      setStatus('Supabase no esta configurado. Se usa modo local.', 'warn');
+    } else {
+      setStatus('Modo compartido activo con Supabase.');
+    }
+
+    refreshState();
+
+    if (state.mode === 'remote') {
+      window.setInterval(refreshState, 15000);
+    }
+  })();
+</script>

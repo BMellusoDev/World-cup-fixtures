@@ -14,7 +14,10 @@ const { title } = Astro.props;
   <meta property="og:title" content={title} />
   <meta property="og:description" content="Todos los resultados históricos de los Mundiales de Fútbol + Mundial 2026" />
   <meta property="og:image" content="https://world-cup-fixtures.vercel.app/posters/1930.jpg" />
-  <meta property="og:image:alt" content="World Cup Fixtures" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="627" />
+  <meta property="og:image:alt" content="World Cup Fixtures — Todos los Mundiales de Fútbol" />
   <!-- Twitter card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={title} />
@@ -30,6 +33,7 @@ const { title } = Astro.props;
       <nav class="site-nav" id="site-nav">
         <a href="/" class="site-nav-link" data-i18n="navWorldCups">Mundiales</a>
         <a href="/teams" class="site-nav-link" data-i18n="navTeams">Selecciones</a>
+        <a href="/pronosticos" class="site-nav-link" data-i18n="navPredictions">Pronósticos</a>
       </nav>
       <button class="hamburger" id="hamburger" aria-label="Abrir menú" aria-expanded="false" aria-controls="site-nav">
         <span></span><span></span><span></span>
@@ -75,6 +79,7 @@ const { title } = Astro.props;
           missingPoster: 'Sin cartel',
           navWorldCups: 'Mundiales',
           navTeams: 'Selecciones',
+          navPredictions: 'Pronósticos',
           teamsTitle: 'Selecciones',
           teamsSubtitle: 'Busca una selección y ve todas sus participaciones en los Mundiales',
           teamsPlaceholder: 'Escribe el nombre de una selección…',
@@ -87,7 +92,10 @@ const { title } = Astro.props;
           lossAbbr: 'D',
           learnMore: 'Saber más →',
           penalties: 'penaltis',
-          championTitle: '¡Bienvenido, Campeón del Mundo!'
+          championTitle: '¡Bienvenido, Campeón del Mundo!',
+          coachLabel: 'DT',
+          coachTbd: 'Por confirmar',
+          matchTimeTbd: 'Hora por confirmar'
         },
         en: {
           homeTitle: 'World Cup Fixtures',
@@ -100,6 +108,7 @@ const { title } = Astro.props;
           missingPoster: 'No poster',
           navWorldCups: 'World Cups',
           navTeams: 'National Teams',
+          navPredictions: 'Predictions',
           teamsTitle: 'National Teams',
           teamsSubtitle: 'Search for a team and see all their World Cup appearances',
           teamsPlaceholder: 'Type a team name…',
@@ -112,7 +121,10 @@ const { title } = Astro.props;
           lossAbbr: 'L',
           learnMore: 'Learn more →',
           penalties: 'penalties',
-          championTitle: 'Welcome, World Champion!'
+          championTitle: 'Welcome, World Champion!',
+          coachLabel: 'Coach',
+          coachTbd: 'To be confirmed',
+          matchTimeTbd: 'Time TBC'
         },
         pt: {
           homeTitle: 'Calendario da Copa do Mundo',
@@ -125,6 +137,7 @@ const { title } = Astro.props;
           missingPoster: 'Sem poster',
           navWorldCups: 'Copas do Mundo',
           navTeams: 'Seleções',
+          navPredictions: 'Palpites',
           teamsTitle: 'Seleções',
           teamsSubtitle: 'Busque uma seleção e veja todas as participações nas Copas do Mundo',
           teamsPlaceholder: 'Digite o nome de uma seleção…',
@@ -137,7 +150,10 @@ const { title } = Astro.props;
           lossAbbr: 'D',
           learnMore: 'Saiba mais →',
           penalties: 'pênaltis',
-          championTitle: 'Bem-vindo, Campeão do Mundo!'
+          championTitle: 'Bem-vindo, Campeão do Mundo!',
+          coachLabel: 'Treinador',
+          coachTbd: 'A confirmar',
+          matchTimeTbd: 'Hora a confirmar'
         }
       };
 
@@ -210,6 +226,16 @@ const { title } = Astro.props;
             month: 'short',
             year: 'numeric'
           }).format(parsed);
+        });
+
+        document.querySelectorAll('[data-match-time]').forEach((el) => {
+          const value = (el.getAttribute('data-match-time') || '').trim();
+          el.textContent = value || dict.matchTimeTbd;
+        });
+
+        document.querySelectorAll('[data-coach-name]').forEach((el) => {
+          const value = (el.getAttribute('data-coach-name') || '').trim();
+          el.textContent = value || dict.coachTbd;
         });
 
         document.querySelectorAll('[data-phase]').forEach((el) => {

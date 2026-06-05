@@ -24,6 +24,7 @@ const flag1 = getCountryCode(match.team1) || '';
 const flag2 = getCountryCode(match.team2) || '';
 const hasScore = match.score1 !== null && match.score2 !== null;
 const title = `${match.team1} vs ${match.team2} — Mundial ${year}`;
+const matchMeta = match;
 ---
 
 <Layout title={title}>
@@ -39,7 +40,10 @@ const title = `${match.team1} vs ${match.team2} — Mundial ${year}`;
     <!-- Match header -->
     <header class="match-detail-header card">
       <p class="match-detail-phase">{match.phase}</p>
-      <p class="match-detail-date" data-match-date={match.date}>{match.date}</p>
+      <p class="match-detail-date-wrap">
+        <span class="match-detail-date" data-match-date={match.date}>{match.date}</span>
+        <span id="match-detail-time" class="match-detail-time" data-match-time={((matchMeta as any).time ?? '') as string}>{((matchMeta as any).time ?? '--:--') as string}</span>
+      </p>
 
       <div class="match-detail-teams">
         <div class="match-detail-team">
@@ -140,6 +144,21 @@ const title = `${match.team1} vs ${match.team2} — Mundial ${year}`;
             </div>
           </section>
 
+          <!-- Managers -->
+          <section id="section-managers" class="detail-section card" hidden>
+            <h2 class="detail-section-title">🧠 Cuerpos tecnicos</h2>
+            <div class="goals-columns">
+              <div class="goals-col">
+                <h3 class="goals-col-header country-name">{match.team1}</h3>
+                <ul class="manager-list" id="managers-home-list"></ul>
+              </div>
+              <div class="goals-col">
+                <h3 class="goals-col-header goals-col-header--right country-name">{match.team2}</h3>
+                <ul class="manager-list manager-list--right" id="managers-away-list"></ul>
+              </div>
+            </div>
+          </section>
+
           <!-- Referees -->
           <section id="section-referees" class="detail-section card" hidden>
             <h2 class="detail-section-title">🟡 Árbitros</h2>
@@ -177,6 +196,11 @@ const title = `${match.team1} vs ${match.team2} — Mundial ${year}`;
         const res = await fetch(`/data/fjelstul/${matchSlug}.json`);
         if (!res.ok) throw new Error('not found');
         const data = await res.json();
+
+        const timeEl = document.getElementById('match-detail-time');
+        if (timeEl && data.match_time && !(timeEl.getAttribute('data-match-time') || '').trim()) {
+          timeEl.textContent = data.match_time;
+        }
 
         loadingEl.hidden = true;
         contentEl.hidden = false;
@@ -335,6 +359,21 @@ const title = `${match.team1} vs ${match.team2} — Mundial ${year}`;
           }
         }
 
+        // ── MANAGERS ───────────────────────────────────────────────────────
+        const managersSection  = document.getElementById('section-managers');
+        const managersHomeList = document.getElementById('managers-home-list');
+        const managersAwayList = document.getElementById('managers-away-list');
+
+        if (Array.isArray(data.managers) && data.managers.length > 0) {
+          managersSection.hidden = false;
+          for (const m of data.managers) {
+            const li = document.createElement('li');
+            li.className = 'manager-item';
+            li.textContent = m.country ? `${m.manager} (${m.country})` : m.manager;
+            (m.home_team ? managersHomeList : managersAwayList).appendChild(li);
+          }
+        }
+
         // ── REFEREES ───────────────────────────────────────────────────────
         const refSection = document.getElementById('section-referees');
         const refList    = document.getElementById('referee-list');
@@ -352,7 +391,7 @@ const title = `${match.team1} vs ${match.team2} — Mundial ${year}`;
         // If no sections visible, show fallback
         const anySectionVisible = [
           'section-goals', 'section-bookings', 'section-subs', 'section-penalties',
-          'section-lineup', 'section-referees'
+          'section-lineup', 'section-managers', 'section-referees'
         ].some(id => !document.getElementById(id)?.hidden);
 
         if (!anySectionVisible) {

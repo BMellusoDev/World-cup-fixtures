@@ -41,3 +41,31 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+
+## Pronosticos (Porra entre amigos)
+
+La ruta [src/pages/pronosticos.astro](src/pages/pronosticos.astro) ya incluye flujo funcional de porra:
+
+- crear liga
+- unirse por codigo
+- cargar pronosticos
+- cargar resultados manuales
+- tabla de posiciones automatica
+
+### Modo compartido (recomendado)
+
+Para compartir la misma liga entre varios dispositivos, configurar Supabase:
+
+1. Crear proyecto en Supabase.
+2. Ejecutar el SQL de [supabase/schema.sql](supabase/schema.sql) en SQL Editor.
+3. Crear un archivo `.env` usando [`.env.example`](.env.example):
+
+```env
+PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+4. Ejecutar `npm run dev`.
+5. Ir a `/pronosticos` y crear una liga.
+
+Si faltan variables de entorno, la pagina funciona en modo local (solo navegador actual).

@@ -122,7 +122,7 @@ async function main() {
 
   // Download Fjelstul CSVs
   console.log('Downloading Fjelstul CSVs...');
-  const [matchesCSV, goalsCSV, bookingsCSV, subsCSV, penaltiesCSV, appearancesCSV, refAppsCSV] = await Promise.all([
+  const [matchesCSV, goalsCSV, bookingsCSV, subsCSV, penaltiesCSV, appearancesCSV, refAppsCSV, managerAppsCSV] = await Promise.all([
     downloadCSV('matches.csv'),
     downloadCSV('goals.csv'),
     downloadCSV('bookings.csv'),
@@ -130,6 +130,7 @@ async function main() {
     downloadCSV('penalty_kicks.csv'),
     downloadCSV('player_appearances.csv'),
     downloadCSV('referee_appearances.csv'),
+    downloadCSV('manager_appearances.csv'),
   ]);
   console.log('');
 
@@ -142,6 +143,7 @@ async function main() {
   const fPenalties    = csvToObjects(penaltiesCSV);
   const fAppearances  = csvToObjects(appearancesCSV);
   const fRefApps      = csvToObjects(refAppsCSV);
+  const fManagerApps  = csvToObjects(managerAppsCSV);
 
   console.log(`  matches: ${fMatches.length}`);
   console.log(`  goals: ${fGoals.length}`);
@@ -149,7 +151,8 @@ async function main() {
   console.log(`  substitutions: ${fSubs.length}`);
   console.log(`  penalty_kicks: ${fPenalties.length}`);
   console.log(`  player_appearances: ${fAppearances.length}`);
-  console.log(`  referee_appearances: ${fRefApps.length}\n`);
+  console.log(`  referee_appearances: ${fRefApps.length}`);
+  console.log(`  manager_appearances: ${fManagerApps.length}\n`);
 
   // Group events by Fjelstul match_id
   const goalsByMatch       = new Map();
@@ -158,6 +161,7 @@ async function main() {
   const pensByMatch        = new Map();
   const appearsByMatch     = new Map();
   const refAppsByMatch     = new Map();
+  const managerAppsByMatch = new Map();
 
   for (const g of fGoals)        { if (!goalsByMatch.has(g.match_id))      goalsByMatch.set(g.match_id, []);      goalsByMatch.get(g.match_id).push(g);      }
   for (const b of fBookings)     { if (!bookingsByMatch.has(b.match_id))   bookingsByMatch.set(b.match_id, []);   bookingsByMatch.get(b.match_id).push(b);   }
@@ -165,6 +169,7 @@ async function main() {
   for (const p of fPenalties)    { if (!pensByMatch.has(p.match_id))       pensByMatch.set(p.match_id, []);       pensByMatch.get(p.match_id).push(p);       }
   for (const a of fAppearances)  { if (!appearsByMatch.has(a.match_id))    appearsByMatch.set(a.match_id, []);    appearsByMatch.get(a.match_id).push(a);    }
   for (const r of fRefApps)      { if (!refAppsByMatch.has(r.match_id))    refAppsByMatch.set(r.match_id, []);    refAppsByMatch.get(r.match_id).push(r);    }
+  for (const m of fManagerApps)  { if (!managerAppsByMatch.has(m.match_id)) managerAppsByMatch.set(m.match_id, []); managerAppsByMatch.get(m.match_id).push(m); }
 
   // Build lookup: `year|date|home_norm|away_norm` → fjelstul match_id
   const fMatchLookup = new Map();
@@ -293,7 +298,18 @@ async function main() {
       country: r.country_name,
     }));
 
-    const output = { fjelstul_match_id: fMatchId, goals, bookings, substitutions, penalty_kicks, starters, bench, referees };
+    // Managers (one per team)
+    const managers = (managerAppsByMatch.get(fMatchId) || []).map(m => ({
+      team: m.team_name,
+      manager: `${m.given_name !== 'not applicable' ? m.given_name + ' ' : ''}${m.family_name}`.trim(),
+      country: m.country_name,
+      home_team: m.home_team === '1',
+    }));
+
+    const fMatch = fMatches.find(m => m.match_id === fMatchId);
+    const match_time = fMatch?.match_time || null;
+
+    const output = { fjelstul_match_id: fMatchId, match_time, managers, goals, bookings, substitutions, penalty_kicks, starters, bench, referees };
     writeFileSync(join(OUTPUT_DIR, `${match.year}-${match.id}.json`), JSON.stringify(output));
     matched++;
   }
