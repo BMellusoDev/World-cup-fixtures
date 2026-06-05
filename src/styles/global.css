@@ -1180,6 +1180,18 @@ h1 {
   margin-top: 0.2rem;
 }
 
+.team-with-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.team-flag {
+  display: inline-block;
+  min-width: 1.2em;
+  text-align: center;
+}
+
 .score-inputs {
   display: inline-flex;
   align-items: center;

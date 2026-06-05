@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { db } from '../lib/db.js';
+import { getCountryCode } from '../lib/flags.js';
 
 const worldcups = db.getWorldCups();
 const upcoming = worldcups.find((wc) => wc.upcoming) || worldcups[0];
@@ -13,6 +14,8 @@ const matches = (upcoming?.matches || []).map((match) => ({
   stadium: match.stadium || '',
   team1: match.team1 || '',
   team2: match.team2 || '',
+  iso1: getCountryCode(match.team1) || '',
+  iso2: getCountryCode(match.team2) || '',
   score1: match.score1,
   score2: match.score2
 }));
@@ -89,8 +92,12 @@ const poolBootstrap = JSON.stringify({
 
       <div class="league-controls">
         <label>
-          Jugador activo
-          <select id="active-player-select"></select>
+          Mi usuario
+          <input id="active-player-name" type="text" readonly />
+        </label>
+        <label>
+          Mis ligas
+          <select id="league-switch-select"></select>
         </label>
       </div>
 
@@ -113,6 +120,7 @@ const poolBootstrap = JSON.stringify({
           <input id="result-away-score" type="number" min="0" max="20" />
         </label>
         <button id="save-result-btn" class="btn" type="button">Guardar resultado</button>
+        <button id="auto-results-btn" class="btn" type="button">Autocargar reales</button>
         <button id="clear-result-btn" class="btn btn-ghost" type="button">Borrar resultado</button>
       </div>
     </section>
@@ -197,7 +205,8 @@ const poolBootstrap = JSON.stringify({
     const predictionsCard = document.getElementById('predictions-card');
     const leagueTitle = document.getElementById('league-title');
     const leagueCode = document.getElementById('league-code');
-    const activePlayerSelect = document.getElementById('active-player-select');
+    const activePlayerName = document.getElementById('active-player-name');
+    const leagueSwitchSelect = document.getElementById('league-switch-select');
     const statusMsg = document.getElementById('status-msg');
 
     const copyCodeBtn = document.getElementById('copy-code-btn');
@@ -208,6 +217,7 @@ const poolBootstrap = JSON.stringify({
     const resultHomeScore = document.getElementById('result-home-score');
     const resultAwayScore = document.getElementById('result-away-score');
     const saveResultBtn = document.getElementById('save-result-btn');
+    const autoResultsBtn = document.getElementById('auto-results-btn');
     const clearResultBtn = document.getElementById('clear-result-btn');
 
     const savePredictionsBtn = document.getElementById('save-predictions-btn');
@@ -227,11 +237,44 @@ const poolBootstrap = JSON.stringify({
       mode: supabaseEnabled ? 'remote' : 'local',
       active: loadActive(),
       localStore: loadLocalStore(),
+      sessions: loadSessions(),
       league: null,
       members: [],
       predictionsByMember: {},
       results: {}
     };
+
+    function loadSessions() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(ACTIVE_KEY) || '{}');
+        if (!Array.isArray(parsed.sessions)) return [];
+
+        const byCode = new Map();
+        for (const session of parsed.sessions) {
+          if (!session || !session.code || !session.memberId) continue;
+          if (!byCode.has(session.code)) {
+            byCode.set(session.code, {
+              code: session.code,
+              memberId: session.memberId,
+              memberName: session.memberName || session.memberId
+            });
+          }
+        }
+        return Array.from(byCode.values());
+      } catch {
+        return [];
+      }
+    }
+
+    function rememberSession(code, memberId, memberName) {
+      const next = state.sessions.filter((s) => s.code !== code);
+      next.unshift({ code, memberId, memberName });
+      state.sessions = next.slice(0, 20);
+    }
+
+    function getSessionForCode(code) {
+      return state.sessions.find((s) => s.code === code) || null;
+    }
 
     function loadActive() {
       try {
@@ -246,7 +289,10 @@ const poolBootstrap = JSON.stringify({
     }
 
     function saveActive() {
-      localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.active));
+      localStorage.setItem(ACTIVE_KEY, JSON.stringify({
+        ...state.active,
+        sessions: state.sessions
+      }));
     }
 
     function loadLocalStore() {
@@ -333,6 +379,18 @@ const poolBootstrap = JSON.stringify({
       return outcome(prediction.score1, prediction.score2) === outcome(realResult.score1, realResult.score2) ? 1 : 0;
     }
 
+    function flagForIso(iso) {
+      const safeIso = String(iso || '').toUpperCase();
+      if (!safeIso || safeIso.length !== 2) return '⚑';
+
+      const i18n = window._wcI18n;
+      if (!i18n || typeof i18n.toFlagEmoji !== 'function' || typeof i18n.supportsFlagEmoji !== 'function') {
+        return '⚑';
+      }
+
+      return i18n.supportsFlagEmoji() ? i18n.toFlagEmoji(safeIso) : '⚑';
+    }
+
     async function refreshState() {
       if (!state.active.code) {
         state.league = null;
@@ -341,6 +399,12 @@ const poolBootstrap = JSON.stringify({
         state.results = {};
         render();
         return;
+      }
+
+      const pinnedSession = getSessionForCode(state.active.code);
+      if (pinnedSession && state.active.memberId !== pinnedSession.memberId) {
+        state.active.memberId = pinnedSession.memberId;
+        saveActive();
       }
 
       if (state.mode === 'remote') {
@@ -376,7 +440,8 @@ const poolBootstrap = JSON.stringify({
         id: league.id,
         code: league.code,
         name: league.name,
-        seasonYear: league.season_year
+        seasonYear: league.season_year,
+        ownerMemberId: null
       };
 
       const [{ data: membersData, error: membersError }, { data: resultsData, error: resultsError }, { data: predData, error: predError }] = await Promise.all([
@@ -390,6 +455,9 @@ const poolBootstrap = JSON.stringify({
       }
 
       state.members = (membersData || []).map((m) => ({ id: m.id, name: m.display_name }));
+      if (state.members[0]) {
+        state.league.ownerMemberId = state.members[0].id;
+      }
 
       if (!state.members.some((m) => m.id === state.active.memberId) && state.members[0]) {
         state.active.memberId = state.members[0].id;
@@ -429,9 +497,13 @@ const poolBootstrap = JSON.stringify({
         id: league.id,
         code: league.code,
         name: league.name,
-        seasonYear: league.seasonYear
+        seasonYear: league.seasonYear,
+        ownerMemberId: league.ownerMemberId || null
       };
       state.members = league.members || [];
+      if (!state.league.ownerMemberId && state.members[0]) {
+        state.league.ownerMemberId = state.members[0].id;
+      }
       state.results = league.results || {};
       state.predictionsByMember = league.predictionsByMember || {};
 
@@ -486,6 +558,7 @@ const poolBootstrap = JSON.stringify({
 
       state.active.code = createdLeague.code;
       state.active.memberId = member.id;
+      rememberSession(createdLeague.code, member.id, ownerName);
       saveActive();
       setStatus(`Liga creada: ${createdLeague.name} (${createdLeague.code})`);
     }
@@ -502,6 +575,7 @@ const poolBootstrap = JSON.stringify({
         code,
         name,
         seasonYear,
+        ownerMemberId: memberId,
         members: [{ id: memberId, name: ownerName }],
         predictionsByMember: {},
         results: {}
@@ -509,6 +583,7 @@ const poolBootstrap = JSON.stringify({
 
       state.active.code = code;
       state.active.memberId = memberId;
+      rememberSession(code, memberId, ownerName);
       saveActive();
       saveLocalStore();
       setStatus(`Liga local creada: ${name} (${code})`, 'warn');
@@ -550,24 +625,25 @@ const poolBootstrap = JSON.stringify({
         .eq('display_name', playerName)
         .maybeSingle();
 
-      let memberId = existing?.id || null;
-      if (!memberId) {
-        const { data: inserted, error: insertError } = await supabase
-          .from('pool_members')
-          .insert({ league_id: league.id, display_name: playerName })
-          .select('id,display_name')
-          .maybeSingle();
+      if (existing) {
+        setStatus('Ese nombre ya existe en la liga. Usa otro nombre para evitar suplantacion.', 'error');
+        return;
+      }
 
-        if (insertError || !inserted) {
-          setStatus('No se pudo unir el jugador a la liga.', 'error');
-          return;
-        }
+      const { data: inserted, error: insertError } = await supabase
+        .from('pool_members')
+        .insert({ league_id: league.id, display_name: playerName })
+        .select('id,display_name')
+        .maybeSingle();
 
-        memberId = inserted.id;
+      if (insertError || !inserted) {
+        setStatus('No se pudo unir el jugador a la liga.', 'error');
+        return;
       }
 
       state.active.code = league.code;
-      state.active.memberId = memberId;
+      state.active.memberId = inserted.id;
+      rememberSession(league.code, inserted.id, playerName);
       saveActive();
       setStatus(`Te uniste a ${league.name}.`);
     }
@@ -575,20 +651,22 @@ const poolBootstrap = JSON.stringify({
     function joinLeagueLocal(code, playerName) {
       const league = state.localStore.leagues[code];
       if (!league) {
-        setStatus('No existe una liga local con ese codigo.', 'error');
+        setStatus('No existe una liga local con ese codigo. Para jugar con amigos en distintos dispositivos, activa modo compartido (Supabase).', 'error');
         return;
       }
 
       const existing = (league.members || []).find((m) => m.name.toLowerCase() === playerName.toLowerCase());
-      let memberId = existing?.id || null;
-
-      if (!memberId) {
-        memberId = memberIdForName(playerName, league.members);
-        league.members.push({ id: memberId, name: playerName });
+      if (existing) {
+        setStatus('Ese nombre ya existe en la liga. Usa otro nombre para evitar suplantacion.', 'error');
+        return;
       }
+
+      const memberId = memberIdForName(playerName, league.members);
+      league.members.push({ id: memberId, name: playerName });
 
       state.active.code = code;
       state.active.memberId = memberId;
+      rememberSession(code, memberId, playerName);
       saveActive();
       saveLocalStore();
       setStatus(`Te uniste a ${league.name}.`, 'warn');
@@ -653,6 +731,11 @@ const poolBootstrap = JSON.stringify({
     async function saveManualResult() {
       if (!state.league) return;
 
+      if (state.active.memberId !== state.league.ownerMemberId) {
+        setStatus('Solo el creador de la liga puede editar resultados reales.', 'error');
+        return;
+      }
+
       const key = resultMatchSelect.value;
       const home = parseScore(resultHomeScore.value);
       const away = parseScore(resultAwayScore.value);
@@ -696,6 +779,11 @@ const poolBootstrap = JSON.stringify({
       const key = resultMatchSelect.value;
       if (!key) return;
 
+      if (state.active.memberId !== state.league.ownerMemberId) {
+        setStatus('Solo el creador de la liga puede editar resultados reales.', 'error');
+        return;
+      }
+
       if (state.mode === 'remote') {
         if (!supabase) return;
 
@@ -716,6 +804,80 @@ const poolBootstrap = JSON.stringify({
       }
 
       setStatus('Resultado manual borrado.');
+      await refreshState();
+    }
+
+    async function autoLoadRealResults() {
+      if (!state.league) return;
+
+      if (state.active.memberId !== state.league.ownerMemberId) {
+        setStatus('Solo el creador de la liga puede autocargar resultados reales.', 'error');
+        return;
+      }
+
+      const updates = [];
+
+      for (const match of matches) {
+        const base = baseResults[match.key];
+        if (base) {
+          updates.push({ match_key: match.key, score_home: base.score1, score_away: base.score2 });
+          continue;
+        }
+
+        try {
+          const response = await fetch(`/data/fjelstul/${match.key}.json`, { cache: 'no-store' });
+          if (!response.ok) continue;
+
+          const detail = await response.json();
+          if (!Array.isArray(detail?.goals)) continue;
+
+          let home = 0;
+          let away = 0;
+
+          for (const goal of detail.goals) {
+            if (!goal || typeof goal.home_team !== 'boolean') continue;
+            if (goal.home_team) home += 1;
+            else away += 1;
+          }
+
+          updates.push({ match_key: match.key, score_home: home, score_away: away });
+        } catch {
+          // non-critical
+        }
+      }
+
+      if (!updates.length) {
+        setStatus('No se encontraron resultados reales para autocargar.', 'warn');
+        return;
+      }
+
+      if (state.mode === 'remote') {
+        if (!supabase) return;
+
+        const payload = updates.map((item) => ({
+          league_id: state.league.id,
+          match_key: item.match_key,
+          score_home: item.score_home,
+          score_away: item.score_away
+        }));
+
+        const { error } = await supabase
+          .from('pool_results')
+          .upsert(payload, { onConflict: 'league_id,match_key' });
+
+        if (error) {
+          setStatus('No se pudieron autocargar resultados en Supabase.', 'error');
+          return;
+        }
+      } else {
+        const league = state.localStore.leagues[state.active.code];
+        for (const item of updates) {
+          league.results[item.match_key] = { score1: item.score_home, score2: item.score_away };
+        }
+        saveLocalStore();
+      }
+
+      setStatus(`Resultados autocargados: ${updates.length}.`);
       await refreshState();
     }
 
@@ -744,22 +906,43 @@ const poolBootstrap = JSON.stringify({
       leagueCode.textContent = state.league.code;
 
       renderPlayerSelect();
+      renderLeagueSessions();
       renderResultsSelector();
       renderMatchesTable();
       renderLeaderboard();
+
+      const canEditResults = state.active.memberId === state.league.ownerMemberId;
+      resultHomeScore.disabled = !canEditResults;
+      resultAwayScore.disabled = !canEditResults;
+      resultMatchSelect.disabled = !canEditResults;
+      saveResultBtn.disabled = !canEditResults;
+      clearResultBtn.disabled = !canEditResults;
+      autoResultsBtn.disabled = !canEditResults;
     }
 
     function renderPlayerSelect() {
-      activePlayerSelect.innerHTML = state.members
-        .map((member) => `<option value="${member.id}">${member.name}</option>`)
-        .join('');
-
-      if (!state.members.some((m) => m.id === state.active.memberId) && state.members[0]) {
-        state.active.memberId = state.members[0].id;
+      const pinnedSession = getSessionForCode(state.active.code);
+      if (pinnedSession && state.active.memberId !== pinnedSession.memberId) {
+        state.active.memberId = pinnedSession.memberId;
         saveActive();
       }
 
-      activePlayerSelect.value = state.active.memberId || '';
+      if (!state.members.some((m) => m.id === state.active.memberId) && state.members[0]) {
+        state.active.memberId = state.members[0].id;
+        rememberSession(state.active.code, state.active.memberId, state.members[0].name);
+        saveActive();
+      }
+
+      const me = state.members.find((m) => m.id === state.active.memberId);
+      activePlayerName.value = me ? me.name : '';
+    }
+
+    function renderLeagueSessions() {
+      const options = state.sessions
+        .map((s) => `<option value="${s.code}" ${s.code === state.active.code ? 'selected' : ''}>${s.code} · ${s.memberName}</option>`)
+        .join('');
+      leagueSwitchSelect.innerHTML = options;
+      leagueSwitchSelect.disabled = state.sessions.length <= 1;
     }
 
     function renderResultsSelector() {
@@ -789,7 +972,9 @@ const poolBootstrap = JSON.stringify({
             <tr>
               <td>${formatDate(match.date)}</td>
               <td>
-                <strong>${match.team1}</strong> vs <strong>${match.team2}</strong>
+                <strong class="team-with-flag"><span class="team-flag">${flagForIso(match.iso1)}</span>${match.team1}</strong>
+                vs
+                <strong class="team-with-flag"><span class="team-flag">${flagForIso(match.iso2)}</span>${match.team2}</strong>
                 <div class="cell-sub">${match.stadium}</div>
               </td>
               <td>${match.phase}</td>
@@ -834,7 +1019,7 @@ const poolBootstrap = JSON.stringify({
         .map((row, index) => `
           <tr>
             <td>${index + 1}</td>
-            <td>${row.member.name}</td>
+            <td>${row.member.name}${row.member.id === state.league.ownerMemberId ? ' 👑' : ''}</td>
             <td>${row.points}</td>
             <td>${row.exact}</td>
             <td>${row.hits}</td>
@@ -867,15 +1052,21 @@ const poolBootstrap = JSON.stringify({
       joinForm.reset();
     });
 
-    activePlayerSelect.addEventListener('change', () => {
-      state.active.memberId = activePlayerSelect.value;
+    leagueSwitchSelect.addEventListener('change', async () => {
+      const code = leagueSwitchSelect.value || '';
+      if (!code) return;
+      const session = getSessionForCode(code);
+      if (!session) return;
+
+      state.active.code = code;
+      state.active.memberId = session.memberId;
       saveActive();
-      renderMatchesTable();
-      renderLeaderboard();
+      await refreshState();
     });
 
     savePredictionsBtn.addEventListener('click', savePredictions);
     saveResultBtn.addEventListener('click', saveManualResult);
+    autoResultsBtn.addEventListener('click', autoLoadRealResults);
     clearResultBtn.addEventListener('click', clearManualResult);
     leaveLeagueBtn.addEventListener('click', leaveLeague);
     syncBtn.addEventListener('click', refreshState);
@@ -893,7 +1084,7 @@ const poolBootstrap = JSON.stringify({
     });
 
     if (!supabaseEnabled) {
-      setStatus('Supabase no esta configurado. Se usa modo local.', 'warn');
+      setStatus('Supabase no esta configurado en este entorno. Se usa modo local (solo este navegador).', 'warn');
     } else {
       setStatus('Modo compartido activo con Supabase.');
     }

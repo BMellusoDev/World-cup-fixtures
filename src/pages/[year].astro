@@ -18,7 +18,7 @@ if (!worldcup) return Astro.redirect('/404');
 db.generateUpcomingMatches(year);
 const posterUrl = getPosterForYear(year);
 
-const phaseGroups = (worldcup.matches || []).reduce((acc, match) => {
+const phaseGroups = (worldcup.matches || []).reduce<Record<string, any[]>>((acc, match) => {
   const phase = match.phase || 'Otros';
   if (!acc[phase]) {
     acc[phase] = [];
@@ -27,7 +27,7 @@ const phaseGroups = (worldcup.matches || []).reduce((acc, match) => {
   return acc;
 }, {});
 
-const orderedPhases = Object.entries(phaseGroups);
+const orderedPhases = Object.entries(phaseGroups) as [string, any[]][];
 ---
 
 <Layout title={`Mundial ${year} - Resultados`}>
@@ -112,6 +112,7 @@ const orderedPhases = Object.entries(phaseGroups);
 </Layout>
 
 <script>
+  // @ts-nocheck
   (async () => {
     const cards = document.querySelectorAll('.match-card[data-slug]');
     if (!cards.length) return;

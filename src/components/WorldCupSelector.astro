@@ -1,16 +1,17 @@
 ---
+// @ts-nocheck
 import { getCountryCode, splitHostCountries } from '../lib/flags.js';
 import { getPosterForYear } from '../lib/posters.js';
 
 const { worldcups } = Astro.props;
-const cards = worldcups.map((worldcup) => ({
+const cards = (worldcups as any[]).map((worldcup: any) => ({
   ...worldcup,
   posterUrl: getPosterForYear(worldcup.year)
 }));
 ---
 
 <div class="worldcups-grid" id="worldcupsGrid">
-  {cards.map((worldcup) => (
+  {cards.map((worldcup: any) => (
     <a 
       href={`/${encodeURIComponent(String(worldcup.year))}/`}
       class={`worldcup-card group ${worldcup.posterUrl ? 'has-poster' : 'no-poster'}`}
@@ -49,7 +50,9 @@ const cards = worldcups.map((worldcup) => ({
   document.addEventListener('astro:page-load', () => {
     const cards = document.querySelectorAll('.worldcup-card');
     cards.forEach((card, index) => {
-      card.style.animationDelay = `${index * 0.1}s`;
+      if (card instanceof HTMLElement) {
+        card.style.animationDelay = `${index * 0.1}s`;
+      }
     });
   });
 </script>
