@@ -1,0 +1,183 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { db } from '../lib/db.js';
+import { getCountryCode, splitHostCountries } from '../lib/flags.js';
+import { getPosterForYear } from '../lib/posters.js';
+
+export async function getStaticPaths() {
+  const worldcups = db.getWorldCups();
+  return worldcups.map(worldcup => ({
+    params: { year: worldcup.year.toString() }
+  }));
+}
+
+const { year } = Astro.params;
+const worldcup = db.getWorldCup(year);
+if (!worldcup) return Astro.redirect('/404');
+
+db.generateUpcomingMatches(year);
+const posterUrl = getPosterForYear(year);
+
+const phaseGroups = (worldcup.matches || []).reduce<Record<string, any[]>>((acc, match) => {
+  const phase = match.phase || 'Otros';
+  if (!acc[phase]) {
+    acc[phase] = [];
+  }
+  acc[phase].push(match);
+  return acc;
+}, {});
+
+const orderedPhases = Object.entries(phaseGroups) as [string, any[]][];
+---
+
+<Layout title={`Mundial ${year} - Resultados`}>
+  <main class="container page-year">
+    <header class="year-header">
+      <div class={`year-header-inner ${posterUrl ? 'has-poster' : 'no-poster'}`} style={posterUrl ? `--year-poster: url('${posterUrl}')` : undefined}>
+        <div class="year-header-overlay"></div>
+        <div class="year-header-content">
+          <h1 class="year-title">
+            {year}
+          </h1>
+          <p class="year-host">
+            {splitHostCountries(worldcup.host).map((country, index, arr) => (
+              <span class="host-country">
+                <span class="country-flag" data-iso={getCountryCode(country) || ''} aria-hidden="true">⚑</span>
+                <span class="country-name">{country}</span>
+                {index < arr.length - 1 && <span class="host-separator"> · </span>}
+              </span>
+            ))}
+          </p>
+          {worldcup.champion && (
+            <div class="champion-banner">
+              <span>🏆 <span class="country-flag" data-iso={getCountryCode(worldcup.champion) || ''} aria-hidden="true">⚑</span> <span class="country-name">{worldcup.champion}</span></span>
+            </div>
+          )}
+          {worldcup.upcoming && (
+            <div class="upcoming-badge" data-i18n="upcomingWorldCup">
+              Proximo Mundial 2026
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <section class="matches-section">
+      {orderedPhases.length === 0 && <p data-i18n="noMatches">No hay partidos cargados para este Mundial.</p>}
+
+      {orderedPhases.map(([phase, matches]) => (
+        <section class="phase-block">
+          <h2 data-phase={phase}>{phase}</h2>
+          <div class="match-grid">
+            {matches.map((match) => (
+              <a href={`/match/${year}-${match.id}`} class="match-card-link">
+                <article class="card match-card" data-slug={`${year}-${match.id}`}>
+                  <p class="match-date-wrap">
+                    <span class="match-date" data-match-date={match.date}>{match.date}</span>
+                    <span class="match-time" data-match-time={((match as any).time ?? '') as string}>{((match as any).time ?? '--:--') as string}</span>
+                  </p>
+                  <p class="match-teams">
+                    <span class="match-team">
+                      <span class="country-flag" data-iso={getCountryCode(match.team1) || ''} aria-hidden="true">⚑</span>
+                      <span class="country-name">{match.team1}</span>
+                    </span>
+                    <span data-i18n="versus">vs</span>
+                    <span class="match-team">
+                      <span class="country-flag" data-iso={getCountryCode(match.team2) || ''} aria-hidden="true">⚑</span>
+                      <span class="country-name">{match.team2}</span>
+                    </span>
+                  </p>
+                  <p class="match-score">
+                    {match.score1 === null || match.score2 === null
+                      ? <span data-i18n="toBePlayed">Por jugar</span>
+                      : `${match.score1} - ${match.score2}`}
+                  </p>
+                  <p class="match-penalties" hidden></p>
+                  <p class="match-stadium">{match.stadium}</p>
+                  <p class="match-coaches">
+                    <span data-i18n="coachLabel">DT</span>:
+                    <span data-coach-name={((match as any).coach1 ?? '') as string}>{((match as any).coach1 ?? '—') as string}</span>
+                    <span data-i18n="versus">vs</span>
+                    <span data-coach-name={((match as any).coach2 ?? '') as string}>{((match as any).coach2 ?? '—') as string}</span>
+                  </p>
+                  <span class="match-more-btn" data-i18n="learnMore">Saber más →</span>
+                </article>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))}
+    </section>
+  </main>
+</Layout>
+
+<script>
+  // @ts-nocheck
+  (async () => {
+    const cards = document.querySelectorAll('.match-card[data-slug]');
+    if (!cards.length) return;
+
+    async function hydrateCardMeta(card, slug) {
+      const timeEl = card.querySelector('[data-match-time]');
+      const coachEls = Array.from(card.querySelectorAll('[data-coach-name]'));
+
+      const needsTime = !!timeEl && !(timeEl.getAttribute('data-match-time') || '').trim();
+      const needsCoaches = coachEls.some((el) => !(el.getAttribute('data-coach-name') || '').trim());
+
+      if (!needsTime && !needsCoaches) {
+        return;
+      }
+
+      try {
+        const detailRes = await fetch(`/data/fjelstul/${slug}.json`);
+        if (!detailRes.ok) return;
+        const detail = await detailRes.json();
+
+        if (needsTime && timeEl && detail.match_time) {
+          timeEl.textContent = detail.match_time;
+        }
+
+        if (needsCoaches && Array.isArray(detail.managers) && coachEls.length >= 2) {
+          const homeNames = detail.managers
+            .filter((m) => m && m.home_team)
+            .map((m) => m.manager)
+            .filter(Boolean);
+
+          const awayNames = detail.managers
+            .filter((m) => m && !m.home_team)
+            .map((m) => m.manager)
+            .filter(Boolean);
+
+          if (homeNames.length) {
+            coachEls[0].textContent = homeNames.join(' / ');
+          }
+          if (awayNames.length) {
+            coachEls[1].textContent = awayNames.join(' / ');
+          }
+        }
+      } catch {
+        // non-critical
+      }
+    }
+
+    try {
+      const res = await fetch('/data/penalties.json');
+      if (!res.ok) return;
+      const penalties = await res.json();
+      for (const card of cards) {
+        const slug = card.dataset.slug;
+        if (slug) {
+          await hydrateCardMeta(card, slug);
+        }
+        if (!penalties[slug]) continue;
+        const { pen1, pen2 } = penalties[slug];
+        const penEl = card.querySelector('.match-penalties');
+        if (penEl) {
+        const penLabel = (window._wcI18n && window._wcI18n.t('penalties')) || 'penaltis';
+          penEl.textContent = `(${penLabel}: ${pen1} – ${pen2})`;
+          penEl.hidden = false;
+        }
+      }
+    } catch { /* non-critical */ }
+  })();
+</script>

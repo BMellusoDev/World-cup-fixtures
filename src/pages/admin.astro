@@ -1,0 +1,26 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { db } from '../lib/db.js';
+
+const worldcups = db.getWorldCups();
+const upcoming = worldcups.find((wc) => wc.upcoming);
+---
+
+<Layout title="Admin - Mundiales FIFA">
+  <main class="container page-admin">
+    <h1>Panel de Administracion</h1>
+    <p class="subtitle">
+      Esta version no usa API aun. Puedes usar esta vista para validar datos y luego conectar un endpoint.
+    </p>
+
+    <section class="card admin-card">
+      <h2>Resumen de datos</h2>
+      <ul class="admin-list">
+        <li>Total de mundiales cargados: {worldcups.length}</li>
+        <li>Ultimo mundial completo: {worldcups.find((wc) => wc.champion)?.year}</li>
+        <li>Proximo mundial: {upcoming ? upcoming.year : 'No definido'}</li>
+        <li>Partidos del proximo mundial: {upcoming ? upcoming.matches.length : 0}</li>
+      </ul>
+    </section>
+  </main>
+</Layout>

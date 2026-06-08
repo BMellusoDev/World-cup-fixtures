@@ -1,0 +1,15 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WorldCupSelector from '../components/WorldCupSelector.astro';
+import { db } from '../lib/db.js';
+
+const worldcups = db.getWorldCups();
+---
+
+<Layout title="World Cup Fixtures">
+  <main class="container page-home">
+    <h1 data-i18n="homeTitle">World Cup Fixtures</h1>
+    <p class="subtitle" data-i18n="homeSubtitle">Todos los resultados historicos + Mundial 2026</p>
+    <WorldCupSelector worldcups={worldcups} />
+  </main>
+</Layout>

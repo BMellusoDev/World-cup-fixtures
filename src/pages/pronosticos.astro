@@ -1,0 +1,1368 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { db } from '../lib/db.js';
+import { getCountryCode } from '../lib/flags.js';
+
+const worldcups = db.getWorldCups();
+const upcoming = worldcups.find((wc) => wc.upcoming) || worldcups[0];
+const seasonYear = upcoming?.year || 2026;
+const matches = (upcoming?.matches || []).map((match) => ({
+  key: `${seasonYear}-${match.id}`,
+  id: match.id,
+  phase: match.phase || 'Otros',
+  date: match.date || '',
+  stadium: match.stadium || '',
+  team1: match.team1 || '',
+  team2: match.team2 || '',
+  iso1: getCountryCode(match.team1) || '',
+  iso2: getCountryCode(match.team2) || '',
+  score1: match.score1,
+  score2: match.score2
+}));
+
+const poolBootstrap = JSON.stringify({
+  matches,
+  seasonYear,
+  supabaseUrl: import.meta.env.PUBLIC_SUPABASE_URL || '',
+  supabaseAnonKey: import.meta.env.PUBLIC_SUPABASE_ANON_KEY || ''
+});
+---
+
+<Layout title="Pronosticos | World Cup Fixtures">
+  <main class="container page-predictions">
+    <section class="card predictions-hero predictions-hero--compact">
+      <p class="predictions-kicker">Porra con amigos</p>
+      <h1>Pronosticos</h1>
+      <p class="subtitle predictions-subtitle">
+        Crea una liga, suma participantes y carga pronosticos por partido.
+        El ranking se calcula automaticamente: 3 puntos exacto, 1 punto resultado.
+      </p>
+      <div class="predictions-meta">
+        <span class="meta-pill">Mundial {seasonYear}</span>
+        <span class="meta-pill">Partidos {matches.length}</span>
+        <span class="meta-pill" id="pool-mode-pill">Modo: iniciando</span>
+      </div>
+    </section>
+
+    <section class="predictions-grid-top">
+      <section class="card predictions-panel">
+        <h2>Crear liga</h2>
+        <form id="create-league-form" class="form-stack">
+          <label>
+            Nombre de la liga
+            <input id="create-league-name" type="text" maxlength="50" placeholder="Ej: Amigos del barrio" required />
+          </label>
+          <label>
+            Tu nombre
+            <input id="create-player-name" type="text" maxlength="30" placeholder="Ej: Bruno" required />
+          </label>
+          <button class="btn" type="submit">Crear liga</button>
+        </form>
+      </section>
+
+      <section class="card predictions-panel">
+        <h2>Unirse a liga</h2>
+        <form id="join-league-form" class="form-stack">
+          <label>
+            Codigo
+            <input id="join-league-code" type="text" maxlength="8" placeholder="Ej: A7K2QZ" required />
+          </label>
+          <label>
+            Tu nombre
+            <input id="join-player-name" type="text" maxlength="30" placeholder="Ej: Carla" required />
+          </label>
+          <button class="btn btn-ghost" type="submit">Unirme</button>
+        </form>
+      </section>
+
+      <section class="card predictions-panel">
+        <h2>Reingresar</h2>
+        <div class="form-stack">
+          <label>
+            Sesion guardada
+            <select id="quick-rejoin-select"></select>
+          </label>
+          <button id="quick-rejoin-btn" class="btn" type="button">Reingresar seleccionado</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="card predictions-league" id="league-card" hidden>
+      <div class="league-head">
+        <div>
+          <p class="muted">Liga activa</p>
+          <h2 id="league-title">-</h2>
+          <p class="muted">Codigo: <strong id="league-code">-</strong></p>
+        </div>
+        <div class="league-actions">
+          <button id="copy-code-btn" class="btn btn-small" type="button">Copiar codigo</button>
+          <button id="sync-btn" class="btn btn-small" type="button">Sincronizar</button>
+          <button id="leave-league-btn" class="btn btn-ghost btn-small" type="button">Salir de liga</button>
+        </div>
+      </div>
+
+      <div class="league-controls">
+        <label>
+          Mi usuario
+          <input id="active-player-name" type="text" readonly />
+        </label>
+        <label>
+          Mis ligas
+          <select id="league-switch-select"></select>
+        </label>
+      </div>
+
+      <p id="status-msg" class="status-msg" aria-live="polite"></p>
+    </section>
+
+    <section class="card predictions-results" id="results-card" hidden>
+      <h2>Cargar resultado real</h2>
+      <div class="result-controls">
+        <label>
+          Partido
+          <select id="result-match-select"></select>
+        </label>
+        <label>
+          Local
+          <input id="result-home-score" type="number" min="0" max="20" />
+        </label>
+        <label>
+          Visitante
+          <input id="result-away-score" type="number" min="0" max="20" />
+        </label>
+        <button id="save-result-btn" class="btn" type="button">Guardar resultado</button>
+        <button id="auto-results-btn" class="btn" type="button">Autocargar reales</button>
+        <button id="clear-result-btn" class="btn btn-ghost" type="button">Borrar resultado</button>
+      </div>
+    </section>
+
+    <section class="card predictions-board" id="board-card" hidden>
+      <h2>Tabla de posiciones</h2>
+      <div class="table-wrap">
+        <table class="pred-table" id="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jugador</th>
+              <th>Puntos</th>
+              <th>Exactos</th>
+              <th>Aciertos</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card predictions-board" id="predictions-card" hidden>
+      <div class="board-head">
+        <h2>Mis pronosticos</h2>
+        <button id="save-predictions-btn" class="btn" type="button">Guardar pronosticos</button>
+      </div>
+      <div class="table-wrap">
+        <table class="pred-table pred-table--matches" id="matches-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Partido</th>
+              <th>Fase</th>
+              <th>Tu pronostico</th>
+              <th>Resultado</th>
+              <th>Puntos</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card predictions-roadmap">
+      <h2>Reglas</h2>
+      <ul>
+        <li>3 puntos por marcador exacto.</li>
+        <li>1 punto por acertar ganador o empate.</li>
+        <li>0 puntos en cualquier otro caso.</li>
+        <li>Con Supabase configurado la liga es compartida entre dispositivos.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script id="pool-bootstrap" type="application/json" set:html={poolBootstrap}></script>
+</Layout>
+
+<script>
+  // @ts-nocheck
+  import { createClient } from '@supabase/supabase-js';
+
+  (() => {
+    const rawBootstrap = document.getElementById('pool-bootstrap')?.textContent || '{}';
+    const { matches = [], seasonYear = 2026, supabaseUrl = '', supabaseAnonKey = '' } = JSON.parse(rawBootstrap);
+
+    const ACTIVE_KEY = 'wcf.pool.active.v1';
+    const LOCAL_KEY = 'wcf.pool.local.v1';
+    const RESULT_DRAFTS_KEY = 'wcf.pool.resultDrafts.v1';
+    const PREDICTION_DRAFTS_KEY = 'wcf.pool.predictionDrafts.v1';
+    const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+    const modePill = document.getElementById('pool-mode-pill');
+    const createForm = document.getElementById('create-league-form');
+    const joinForm = document.getElementById('join-league-form');
+    const createLeagueName = document.getElementById('create-league-name');
+    const createPlayerName = document.getElementById('create-player-name');
+    const joinLeagueCode = document.getElementById('join-league-code');
+    const joinPlayerName = document.getElementById('join-player-name');
+
+    const leagueCard = document.getElementById('league-card');
+    const resultsCard = document.getElementById('results-card');
+    const boardCard = document.getElementById('board-card');
+    const predictionsCard = document.getElementById('predictions-card');
+    const leagueTitle = document.getElementById('league-title');
+    const leagueCode = document.getElementById('league-code');
+    const activePlayerName = document.getElementById('active-player-name');
+    const leagueSwitchSelect = document.getElementById('league-switch-select');
+    const statusMsg = document.getElementById('status-msg');
+
+    const copyCodeBtn = document.getElementById('copy-code-btn');
+    const syncBtn = document.getElementById('sync-btn');
+    const leaveLeagueBtn = document.getElementById('leave-league-btn');
+
+    const resultMatchSelect = document.getElementById('result-match-select');
+    const resultHomeScore = document.getElementById('result-home-score');
+    const resultAwayScore = document.getElementById('result-away-score');
+    const saveResultBtn = document.getElementById('save-result-btn');
+    const autoResultsBtn = document.getElementById('auto-results-btn');
+    const clearResultBtn = document.getElementById('clear-result-btn');
+
+    const savePredictionsBtn = document.getElementById('save-predictions-btn');
+    const quickRejoinSelect = document.getElementById('quick-rejoin-select');
+    const quickRejoinBtn = document.getElementById('quick-rejoin-btn');
+    const matchesTableBody = document.querySelector('#matches-table tbody');
+    const leaderboardBody = document.querySelector('#leaderboard-table tbody');
+
+    const supabaseEnabled = !!supabaseUrl && !!supabaseAnonKey;
+    const supabase = supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+    const baseResults = Object.fromEntries(
+      matches
+        .filter((m) => m.score1 !== null && m.score2 !== null)
+        .map((m) => [m.key, { score1: Number(m.score1), score2: Number(m.score2) }])
+    );
+
+    const state = {
+      mode: supabaseEnabled ? 'remote' : 'local',
+      active: loadActive(),
+      localStore: loadLocalStore(),
+      resultDraftStore: loadResultDraftStore(),
+      predictionDraftStore: loadPredictionDraftStore(),
+      sessions: loadSessions(),
+      league: null,
+      members: [],
+      predictionsByMember: {},
+      results: {}
+    };
+
+    function loadSessions() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(ACTIVE_KEY) || '{}');
+        if (!Array.isArray(parsed.sessions)) return [];
+
+        const bySession = new Map();
+        for (const session of parsed.sessions) {
+          if (!session || !session.code || !session.memberId) continue;
+          const key = `${session.code}|${session.memberId}`;
+          if (bySession.has(key)) continue;
+          bySession.set(key, {
+            code: session.code,
+            memberId: session.memberId,
+            memberName: session.memberName || session.memberId,
+            leagueName: session.leagueName || ''
+          });
+        }
+        return Array.from(bySession.values());
+      } catch {
+        return [];
+      }
+    }
+
+    function rememberSession(code, memberId, memberName, leagueName = '') {
+      const next = state.sessions.filter((s) => !(s.code === code && s.memberId === memberId));
+      next.unshift({ code, memberId, memberName, leagueName });
+      state.sessions = next.slice(0, 20);
+    }
+
+    function getSessionForCode(code) {
+      if (!code) return null;
+      return state.sessions.find((s) => s.code === code && s.memberId === state.active.memberId)
+        || state.sessions.find((s) => s.code === code)
+        || null;
+    }
+
+    function loadActive() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(ACTIVE_KEY) || '{}');
+        return {
+          code: parsed.code || null,
+          memberId: parsed.memberId || null
+        };
+      } catch {
+        return { code: null, memberId: null };
+      }
+    }
+
+    function saveActive() {
+      localStorage.setItem(ACTIVE_KEY, JSON.stringify({
+        ...state.active,
+        sessions: state.sessions
+      }));
+    }
+
+    function loadLocalStore() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+        return {
+          leagues: parsed.leagues || {}
+        };
+      } catch {
+        return { leagues: {} };
+      }
+    }
+
+    function saveLocalStore() {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(state.localStore));
+    }
+
+    function loadResultDraftStore() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(RESULT_DRAFTS_KEY) || '{}');
+        return {
+          leagues: parsed.leagues || {}
+        };
+      } catch {
+        return { leagues: {} };
+      }
+    }
+
+    function saveResultDraftStore() {
+      localStorage.setItem(RESULT_DRAFTS_KEY, JSON.stringify(state.resultDraftStore));
+    }
+
+    function getLeagueDraft(code = state.active.code) {
+      if (!code) return null;
+
+      if (!state.resultDraftStore.leagues[code]) {
+        state.resultDraftStore.leagues[code] = {
+          selectedMatchKey: '',
+          byMatch: {}
+        };
+      }
+
+      return state.resultDraftStore.leagues[code];
+    }
+
+    function loadPredictionDraftStore() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(PREDICTION_DRAFTS_KEY) || '{}');
+        return {
+          leagues: parsed.leagues || {}
+        };
+      } catch {
+        return { leagues: {} };
+      }
+    }
+
+    function savePredictionDraftStore() {
+      localStorage.setItem(PREDICTION_DRAFTS_KEY, JSON.stringify(state.predictionDraftStore));
+    }
+
+    function getMemberPredictionDraft(code = state.active.code, memberId = state.active.memberId) {
+      if (!code || !memberId) return null;
+
+      if (!state.predictionDraftStore.leagues[code]) {
+        state.predictionDraftStore.leagues[code] = { members: {} };
+      }
+
+      const leagueDraft = state.predictionDraftStore.leagues[code];
+      if (!leagueDraft.members[memberId]) {
+        leagueDraft.members[memberId] = { byMatch: {} };
+      }
+
+      return leagueDraft.members[memberId];
+    }
+
+    function clearMemberPredictionDraft(code = state.active.code, memberId = state.active.memberId) {
+      if (!code || !memberId) return;
+      const leagueDraft = state.predictionDraftStore.leagues[code];
+      if (!leagueDraft?.members?.[memberId]) return;
+      leagueDraft.members[memberId] = { byMatch: {} };
+      savePredictionDraftStore();
+    }
+
+    function setPredictionDraftFromInput(input) {
+      if (!state.league || !state.active.memberId) return;
+      if (!input || !input.matches('input[data-side]')) return;
+
+      const wrapper = input.closest('.score-inputs');
+      if (!wrapper) return;
+
+      const key = wrapper.getAttribute('data-match-key');
+      if (!key) return;
+
+      const homeInput = wrapper.querySelector('input[data-side="home"]');
+      const awayInput = wrapper.querySelector('input[data-side="away"]');
+      if (!homeInput || !awayInput) return;
+
+      const draft = getMemberPredictionDraft();
+      if (!draft) return;
+
+      draft.byMatch[key] = {
+        score1: homeInput.value,
+        score2: awayInput.value
+      };
+
+      savePredictionDraftStore();
+    }
+
+    function setResultDraftForSelection() {
+      if (!state.league) return;
+
+      const leagueDraft = getLeagueDraft();
+      if (!leagueDraft) return;
+
+      const key = resultMatchSelect.value;
+      if (!key) return;
+
+      leagueDraft.selectedMatchKey = key;
+      leagueDraft.byMatch[key] = {
+        score1: resultHomeScore.value,
+        score2: resultAwayScore.value
+      };
+
+      saveResultDraftStore();
+    }
+
+    function populateResultInputsFromDraftOrSaved() {
+      if (!state.league) return;
+
+      const key = resultMatchSelect.value;
+      if (!key) {
+        resultHomeScore.value = '';
+        resultAwayScore.value = '';
+        return;
+      }
+
+      const leagueDraft = getLeagueDraft();
+      const draft = leagueDraft?.byMatch?.[key];
+      if (draft) {
+        resultHomeScore.value = draft.score1 ?? '';
+        resultAwayScore.value = draft.score2 ?? '';
+        return;
+      }
+
+      const saved = pickResult(key);
+      resultHomeScore.value = saved ? String(saved.score1) : '';
+      resultAwayScore.value = saved ? String(saved.score2) : '';
+    }
+
+    function generateCode() {
+      let output = '';
+      for (let i = 0; i < 6; i += 1) {
+        output += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+      }
+      return output;
+    }
+
+    function parseScore(value) {
+      if (value === '' || value === null || value === undefined) return null;
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < 0) return null;
+      return n;
+    }
+
+    function normalizeCode(value) {
+      return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    }
+
+    function slugifyName(name) {
+      return String(name || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 24) || 'jugador';
+    }
+
+    function memberIdForName(name, members) {
+      const base = slugifyName(name);
+      const used = new Set((members || []).map((m) => m.id));
+      let candidate = base;
+      let idx = 2;
+      while (used.has(candidate)) {
+        candidate = `${base}-${idx}`;
+        idx += 1;
+      }
+      return candidate;
+    }
+
+    function setStatus(message, tone = 'ok') {
+      statusMsg.textContent = message;
+      statusMsg.dataset.tone = tone;
+    }
+
+    function formatDate(value) {
+      const d = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(d.getTime())) return value || '-';
+      return new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short' }).format(d);
+    }
+
+    function pickResult(matchKey) {
+      return state.results[matchKey] || baseResults[matchKey] || null;
+    }
+
+    function outcome(score1, score2) {
+      if (score1 === score2) return 'D';
+      return score1 > score2 ? 'H' : 'A';
+    }
+
+    function pointsForPrediction(prediction, realResult) {
+      if (!prediction || !realResult) return 0;
+      if (prediction.score1 === realResult.score1 && prediction.score2 === realResult.score2) {
+        return 3;
+      }
+      return outcome(prediction.score1, prediction.score2) === outcome(realResult.score1, realResult.score2) ? 1 : 0;
+    }
+
+    function flagForIso(iso) {
+      const safeIso = String(iso || '').toUpperCase();
+      if (!safeIso || safeIso.length !== 2) return '⚑';
+
+      const i18n = window._wcI18n;
+      if (!i18n || typeof i18n.toFlagEmoji !== 'function' || typeof i18n.supportsFlagEmoji !== 'function') {
+        return '⚑';
+      }
+
+      return i18n.supportsFlagEmoji() ? i18n.toFlagEmoji(safeIso) : '⚑';
+    }
+
+    async function refreshState() {
+      if (!state.active.code) {
+        state.league = null;
+        state.members = [];
+        state.predictionsByMember = {};
+        state.results = {};
+        render();
+        return;
+      }
+
+      const pinnedSession = getSessionForCode(state.active.code);
+      if (pinnedSession && state.active.memberId !== pinnedSession.memberId) {
+        state.active.memberId = pinnedSession.memberId;
+        saveActive();
+      }
+
+      if (state.mode === 'remote') {
+        await refreshRemoteState();
+      } else {
+        refreshLocalState();
+      }
+      render();
+    }
+
+    async function refreshRemoteState() {
+      if (!supabase) return;
+
+      const { data: league, error: leagueError } = await supabase
+        .from('pool_leagues')
+        .select('id,code,name,season_year')
+        .eq('code', state.active.code)
+        .maybeSingle();
+
+      if (leagueError || !league) {
+        state.active.code = null;
+        state.active.memberId = null;
+        saveActive();
+        state.league = null;
+        state.members = [];
+        state.predictionsByMember = {};
+        state.results = {};
+        setStatus('No se encontro la liga en Supabase.', 'error');
+        return;
+      }
+
+      state.league = {
+        id: league.id,
+        code: league.code,
+        name: league.name,
+        seasonYear: league.season_year,
+        ownerMemberId: null
+      };
+
+      const [{ data: membersData, error: membersError }, { data: resultsData, error: resultsError }, { data: predData, error: predError }] = await Promise.all([
+        supabase.from('pool_members').select('id,display_name').eq('league_id', league.id).order('created_at', { ascending: true }),
+        supabase.from('pool_results').select('match_key,score_home,score_away').eq('league_id', league.id),
+        supabase.from('pool_predictions').select('member_id,match_key,pred_home,pred_away').eq('league_id', league.id)
+      ]);
+
+      if (membersError || resultsError || predError) {
+        setStatus('Error al sincronizar datos de la liga.', 'error');
+      }
+
+      state.members = (membersData || []).map((m) => ({ id: m.id, name: m.display_name }));
+      if (state.members[0]) {
+        state.league.ownerMemberId = state.members[0].id;
+      }
+
+      if (!state.members.some((m) => m.id === state.active.memberId) && state.members[0]) {
+        state.active.memberId = state.members[0].id;
+        saveActive();
+      }
+
+      state.results = Object.fromEntries(
+        (resultsData || []).map((r) => [r.match_key, { score1: Number(r.score_home), score2: Number(r.score_away) }])
+      );
+
+      state.predictionsByMember = {};
+      for (const row of predData || []) {
+        if (!state.predictionsByMember[row.member_id]) {
+          state.predictionsByMember[row.member_id] = {};
+        }
+        state.predictionsByMember[row.member_id][row.match_key] = {
+          score1: Number(row.pred_home),
+          score2: Number(row.pred_away)
+        };
+      }
+    }
+
+    function refreshLocalState() {
+      const league = state.localStore.leagues[state.active.code];
+      if (!league) {
+        state.active.code = null;
+        state.active.memberId = null;
+        saveActive();
+        state.league = null;
+        state.members = [];
+        state.predictionsByMember = {};
+        state.results = {};
+        return;
+      }
+
+      state.league = {
+        id: league.id,
+        code: league.code,
+        name: league.name,
+        seasonYear: league.seasonYear,
+        ownerMemberId: league.ownerMemberId || null
+      };
+      state.members = league.members || [];
+      if (!state.league.ownerMemberId && state.members[0]) {
+        state.league.ownerMemberId = state.members[0].id;
+      }
+      state.results = league.results || {};
+      state.predictionsByMember = league.predictionsByMember || {};
+
+      if (!state.members.some((m) => m.id === state.active.memberId) && state.members[0]) {
+        state.active.memberId = state.members[0].id;
+        saveActive();
+      }
+    }
+
+    async function createLeague(name, ownerName) {
+      if (state.mode === 'remote') {
+        await createLeagueRemote(name, ownerName);
+      } else {
+        createLeagueLocal(name, ownerName);
+      }
+      await refreshState();
+    }
+
+    async function createLeagueRemote(name, ownerName) {
+      if (!supabase) return;
+
+      let createdLeague = null;
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const code = generateCode();
+        const { data, error } = await supabase
+          .from('pool_leagues')
+          .insert({ code, name, season_year: seasonYear })
+          .select('id,code,name,season_year')
+          .maybeSingle();
+
+        if (!error && data) {
+          createdLeague = data;
+          break;
+        }
+      }
+
+      if (!createdLeague) {
+        setStatus('No se pudo crear la liga en Supabase.', 'error');
+        return;
+      }
+
+      const { data: member, error: memberError } = await supabase
+        .from('pool_members')
+        .insert({ league_id: createdLeague.id, display_name: ownerName })
+        .select('id,display_name')
+        .maybeSingle();
+
+      if (memberError || !member) {
+        setStatus('La liga se creo, pero fallo el alta de jugador.', 'error');
+        return;
+      }
+
+      state.active.code = createdLeague.code;
+      state.active.memberId = member.id;
+      rememberSession(createdLeague.code, member.id, ownerName, createdLeague.name);
+      saveActive();
+      setStatus(`Liga creada: ${createdLeague.name} (${createdLeague.code})`);
+    }
+
+    function createLeagueLocal(name, ownerName) {
+      let code = generateCode();
+      while (state.localStore.leagues[code]) {
+        code = generateCode();
+      }
+
+      const memberId = slugifyName(ownerName);
+      state.localStore.leagues[code] = {
+        id: code,
+        code,
+        name,
+        seasonYear,
+        ownerMemberId: memberId,
+        members: [{ id: memberId, name: ownerName }],
+        predictionsByMember: {},
+        results: {}
+      };
+
+      state.active.code = code;
+      state.active.memberId = memberId;
+      rememberSession(code, memberId, ownerName, name);
+      saveActive();
+      saveLocalStore();
+      setStatus(`Liga local creada: ${name} (${code})`, 'warn');
+    }
+
+    async function joinLeague(codeRaw, playerName) {
+      const code = normalizeCode(codeRaw);
+      if (!code) {
+        setStatus('Codigo invalido.', 'error');
+        return;
+      }
+
+      if (state.mode === 'remote') {
+        await joinLeagueRemote(code, playerName);
+      } else {
+        joinLeagueLocal(code, playerName);
+      }
+      await refreshState();
+    }
+
+    function parseSessionValue(value) {
+      const [code = '', memberId = ''] = String(value || '').split('|');
+      if (!code || !memberId) return null;
+      return { code, memberId };
+    }
+
+    async function quickRejoinSelected() {
+      if (!state.sessions.length) {
+        setStatus('No hay ligas guardadas en este navegador todavia.', 'warn');
+        return;
+      }
+
+      const picked = parseSessionValue(quickRejoinSelect.value);
+      const fallback = state.sessions[0] || null;
+      const session = picked
+        ? state.sessions.find((s) => s.code === picked.code && s.memberId === picked.memberId)
+        : fallback;
+
+      if (!session) {
+        setStatus('Selecciona una sesion valida para reingresar.', 'warn');
+        return;
+      }
+
+      state.active.code = session.code;
+      state.active.memberId = session.memberId;
+      saveActive();
+      await refreshState();
+
+      if (state.league) {
+        setStatus(`Reingresaste a ${state.league.name} como ${session.memberName || 'jugador'}.`);
+        return;
+      }
+
+      setStatus('No se pudo abrir esa sesion. Prueba con otra o entra con codigo y nombre.', 'warn');
+    }
+
+    async function joinLeagueRemote(code, playerName) {
+      if (!supabase) return;
+
+      const { data: league, error: leagueError } = await supabase
+        .from('pool_leagues')
+        .select('id,code,name')
+        .eq('code', code)
+        .maybeSingle();
+
+      if (leagueError || !league) {
+        setStatus('No existe una liga con ese codigo.', 'error');
+        return;
+      }
+
+      const { data: existingMembers } = await supabase
+        .from('pool_members')
+        .select('id,display_name')
+        .eq('league_id', league.id)
+        .order('created_at', { ascending: true });
+
+      const existing = (existingMembers || []).find(
+        (m) => String(m.display_name || '').toLowerCase() === playerName.toLowerCase()
+      );
+
+      if (existing) {
+        state.active.code = league.code;
+        state.active.memberId = existing.id;
+        rememberSession(league.code, existing.id, existing.display_name || playerName, league.name);
+        saveActive();
+        setStatus(`Reingresaste a ${league.name} como ${existing.display_name || playerName}.`);
+        return;
+      }
+
+      const { data: inserted, error: insertError } = await supabase
+        .from('pool_members')
+        .insert({ league_id: league.id, display_name: playerName })
+        .select('id,display_name')
+        .maybeSingle();
+
+      if (insertError || !inserted) {
+        setStatus('No se pudo unir el jugador a la liga.', 'error');
+        return;
+      }
+
+      state.active.code = league.code;
+      state.active.memberId = inserted.id;
+      rememberSession(league.code, inserted.id, playerName, league.name);
+      saveActive();
+      setStatus(`Te uniste a ${league.name}.`);
+    }
+
+    function joinLeagueLocal(code, playerName) {
+      const league = state.localStore.leagues[code];
+      if (!league) {
+        setStatus('No existe una liga local con ese codigo. Para jugar con amigos en distintos dispositivos, activa modo compartido (Supabase).', 'error');
+        return;
+      }
+
+      const existing = (league.members || []).find((m) => m.name.toLowerCase() === playerName.toLowerCase());
+      if (existing) {
+        state.active.code = code;
+        state.active.memberId = existing.id;
+        rememberSession(code, existing.id, existing.name, league.name);
+        saveActive();
+        setStatus(`Reingresaste a ${league.name} como ${existing.name}.`, 'warn');
+        return;
+      }
+
+      const memberId = memberIdForName(playerName, league.members);
+      league.members.push({ id: memberId, name: playerName });
+
+      state.active.code = code;
+      state.active.memberId = memberId;
+      rememberSession(code, memberId, playerName, league.name);
+      saveActive();
+      saveLocalStore();
+      setStatus(`Te uniste a ${league.name}.`, 'warn');
+    }
+
+    async function savePredictions() {
+      if (!state.league || !state.active.memberId) return;
+
+      const rows = [];
+      const wrappers = matchesTableBody.querySelectorAll('.score-inputs');
+      wrappers.forEach((wrapper) => {
+        const key = wrapper.getAttribute('data-match-key');
+        const homeInput = wrapper.querySelector('input[data-side="home"]');
+        const awayInput = wrapper.querySelector('input[data-side="away"]');
+        const home = parseScore(homeInput ? homeInput.value : '');
+        const away = parseScore(awayInput ? awayInput.value : '');
+        if (key && home !== null && away !== null) {
+          rows.push({ match_key: key, pred_home: home, pred_away: away });
+        }
+      });
+
+      if (state.mode === 'remote') {
+        if (!supabase) return;
+
+        await supabase
+          .from('pool_predictions')
+          .delete()
+          .eq('league_id', state.league.id)
+          .eq('member_id', state.active.memberId);
+
+        if (rows.length) {
+          const payload = rows.map((r) => ({
+            league_id: state.league.id,
+            member_id: state.active.memberId,
+            match_key: r.match_key,
+            pred_home: r.pred_home,
+            pred_away: r.pred_away
+          }));
+
+          const { error } = await supabase.from('pool_predictions').insert(payload);
+          if (error) {
+            setStatus('No se pudieron guardar los pronosticos.', 'error');
+            return;
+          }
+        }
+      } else {
+        const league = state.localStore.leagues[state.active.code];
+        if (!league.predictionsByMember[state.active.memberId]) {
+          league.predictionsByMember[state.active.memberId] = {};
+        }
+
+        league.predictionsByMember[state.active.memberId] = Object.fromEntries(
+          rows.map((r) => [r.match_key, { score1: r.pred_home, score2: r.pred_away }])
+        );
+        saveLocalStore();
+      }
+
+      setStatus('Pronosticos guardados.');
+      clearMemberPredictionDraft();
+      await refreshState();
+    }
+
+    async function saveManualResult() {
+      if (!state.league) return;
+
+      if (state.active.memberId !== state.league.ownerMemberId) {
+        setStatus('Solo el creador de la liga puede editar resultados reales.', 'error');
+        return;
+      }
+
+      const key = resultMatchSelect.value;
+      const home = parseScore(resultHomeScore.value);
+      const away = parseScore(resultAwayScore.value);
+
+      if (!key || home === null || away === null) {
+        setStatus('Ingresa resultado valido para guardar.', 'error');
+        return;
+      }
+
+      if (state.mode === 'remote') {
+        if (!supabase) return;
+
+        const { error } = await supabase
+          .from('pool_results')
+          .upsert(
+            {
+              league_id: state.league.id,
+              match_key: key,
+              score_home: home,
+              score_away: away
+            },
+            { onConflict: 'league_id,match_key' }
+          );
+
+        if (error) {
+          setStatus('No se pudo guardar el resultado.', 'error');
+          return;
+        }
+      } else {
+        const league = state.localStore.leagues[state.active.code];
+        league.results[key] = { score1: home, score2: away };
+        saveLocalStore();
+      }
+
+      setStatus('Resultado guardado.');
+      const leagueDraft = getLeagueDraft();
+      if (leagueDraft?.byMatch?.[key]) {
+        delete leagueDraft.byMatch[key];
+        saveResultDraftStore();
+      }
+      await refreshState();
+    }
+
+    async function clearManualResult() {
+      if (!state.league) return;
+      const key = resultMatchSelect.value;
+      if (!key) return;
+
+      if (state.active.memberId !== state.league.ownerMemberId) {
+        setStatus('Solo el creador de la liga puede editar resultados reales.', 'error');
+        return;
+      }
+
+      if (state.mode === 'remote') {
+        if (!supabase) return;
+
+        const { error } = await supabase
+          .from('pool_results')
+          .delete()
+          .eq('league_id', state.league.id)
+          .eq('match_key', key);
+
+        if (error) {
+          setStatus('No se pudo borrar el resultado.', 'error');
+          return;
+        }
+      } else {
+        const league = state.localStore.leagues[state.active.code];
+        delete league.results[key];
+        saveLocalStore();
+      }
+
+      setStatus('Resultado manual borrado.');
+      const leagueDraft = getLeagueDraft();
+      if (leagueDraft?.byMatch?.[key]) {
+        delete leagueDraft.byMatch[key];
+        saveResultDraftStore();
+      }
+      await refreshState();
+    }
+
+    async function autoLoadRealResults() {
+      if (!state.league) return;
+
+      if (state.active.memberId !== state.league.ownerMemberId) {
+        setStatus('Solo el creador de la liga puede autocargar resultados reales.', 'error');
+        return;
+      }
+
+      const updates = [];
+
+      for (const match of matches) {
+        const base = baseResults[match.key];
+        if (base) {
+          updates.push({ match_key: match.key, score_home: base.score1, score_away: base.score2 });
+          continue;
+        }
+
+        try {
+          const response = await fetch(`/data/fjelstul/${match.key}.json`, { cache: 'no-store' });
+          if (!response.ok) continue;
+
+          const detail = await response.json();
+          if (!Array.isArray(detail?.goals)) continue;
+
+          let home = 0;
+          let away = 0;
+
+          for (const goal of detail.goals) {
+            if (!goal || typeof goal.home_team !== 'boolean') continue;
+            if (goal.home_team) home += 1;
+            else away += 1;
+          }
+
+          updates.push({ match_key: match.key, score_home: home, score_away: away });
+        } catch {
+          // non-critical
+        }
+      }
+
+      if (!updates.length) {
+        setStatus('No se encontraron resultados reales para autocargar.', 'warn');
+        return;
+      }
+
+      if (state.mode === 'remote') {
+        if (!supabase) return;
+
+        const payload = updates.map((item) => ({
+          league_id: state.league.id,
+          match_key: item.match_key,
+          score_home: item.score_home,
+          score_away: item.score_away
+        }));
+
+        const { error } = await supabase
+          .from('pool_results')
+          .upsert(payload, { onConflict: 'league_id,match_key' });
+
+        if (error) {
+          setStatus('No se pudieron autocargar resultados en Supabase.', 'error');
+          return;
+        }
+      } else {
+        const league = state.localStore.leagues[state.active.code];
+        for (const item of updates) {
+          league.results[item.match_key] = { score1: item.score_home, score2: item.score_away };
+        }
+        saveLocalStore();
+      }
+
+      setStatus(`Resultados autocargados: ${updates.length}.`);
+      await refreshState();
+    }
+
+    function leaveLeague() {
+      state.active.code = null;
+      state.active.memberId = null;
+      saveActive();
+      setStatus('Saliste de la liga activa.');
+      refreshState();
+    }
+
+    function render() {
+      const hasLeague = !!state.league;
+      leagueCard.hidden = !hasLeague;
+      resultsCard.hidden = !hasLeague;
+      boardCard.hidden = !hasLeague;
+      predictionsCard.hidden = !hasLeague;
+
+      modePill.textContent = state.mode === 'remote' ? 'Modo: compartido (Supabase)' : 'Modo: local (fallback)';
+      renderQuickRejoinSessions();
+
+      if (!hasLeague) {
+        return;
+      }
+
+      leagueTitle.textContent = state.league.name;
+      leagueCode.textContent = state.league.code;
+
+      renderPlayerSelect();
+      renderLeagueSessions();
+      renderResultsSelector();
+      renderMatchesTable();
+      renderLeaderboard();
+
+      const canEditResults = state.active.memberId === state.league.ownerMemberId;
+      resultHomeScore.disabled = !canEditResults;
+      resultAwayScore.disabled = !canEditResults;
+      resultMatchSelect.disabled = !canEditResults;
+      saveResultBtn.disabled = !canEditResults;
+      clearResultBtn.disabled = !canEditResults;
+      autoResultsBtn.disabled = !canEditResults;
+    }
+
+    function renderPlayerSelect() {
+      const pinnedSession = getSessionForCode(state.active.code);
+      if (pinnedSession && state.active.memberId !== pinnedSession.memberId) {
+        state.active.memberId = pinnedSession.memberId;
+        saveActive();
+      }
+
+      if (!state.members.some((m) => m.id === state.active.memberId) && state.members[0]) {
+        state.active.memberId = state.members[0].id;
+        rememberSession(state.active.code, state.active.memberId, state.members[0].name, state.league?.name || '');
+        saveActive();
+      }
+
+      const me = state.members.find((m) => m.id === state.active.memberId);
+      activePlayerName.value = me ? me.name : '';
+    }
+
+    function renderLeagueSessions() {
+      const uniqueByCode = Array.from(new Map(state.sessions.map((s) => [s.code, s])).values());
+      const options = uniqueByCode
+        .map((s) => `<option value="${s.code}" ${s.code === state.active.code ? 'selected' : ''}>${s.code} · ${s.leagueName || s.memberName}</option>`)
+        .join('');
+      leagueSwitchSelect.innerHTML = options;
+      leagueSwitchSelect.disabled = uniqueByCode.length <= 1;
+    }
+
+    function renderQuickRejoinSessions() {
+      const currentValue = quickRejoinSelect.value;
+      const preferred = state.sessions.find((s) => s.code === state.active.code && s.memberId === state.active.memberId);
+      const preferredValue = preferred ? `${preferred.code}|${preferred.memberId}` : '';
+      const fallbackValue = state.sessions[0] ? `${state.sessions[0].code}|${state.sessions[0].memberId}` : '';
+      const selectedValue = currentValue || preferredValue || fallbackValue;
+
+      const options = state.sessions
+        .map((s) => {
+          const value = `${s.code}|${s.memberId}`;
+          const selected = value === selectedValue ? 'selected' : '';
+          const leagueLabel = s.leagueName || s.code;
+          return `<option value="${value}" ${selected}>${leagueLabel} (${s.code}) · ${s.memberName}</option>`;
+        })
+        .join('');
+
+      quickRejoinSelect.innerHTML = options || '<option value="">Sin sesiones guardadas</option>';
+      quickRejoinSelect.disabled = state.sessions.length === 0;
+      quickRejoinBtn.disabled = state.sessions.length === 0;
+    }
+
+    function renderResultsSelector() {
+      const leagueDraft = getLeagueDraft();
+      const preferredKey = leagueDraft?.selectedMatchKey || resultMatchSelect.value || '';
+      const options = matches
+        .map((match) => {
+          const result = pickResult(match.key);
+          const suffix = result ? ` (${result.score1}-${result.score2})` : '';
+          return `<option value="${match.key}">${match.team1} vs ${match.team2}${suffix}</option>`;
+        })
+        .join('');
+      resultMatchSelect.innerHTML = options;
+
+      const validKey = matches.some((m) => m.key === preferredKey) ? preferredKey : (matches[0]?.key || '');
+      if (validKey) {
+        resultMatchSelect.value = validKey;
+      }
+
+      if (leagueDraft) {
+        leagueDraft.selectedMatchKey = resultMatchSelect.value || '';
+        saveResultDraftStore();
+      }
+
+      populateResultInputsFromDraftOrSaved();
+    }
+
+    function renderMatchesTable() {
+      const memberPredictions = state.predictionsByMember[state.active.memberId] || {};
+      const memberDraft = getMemberPredictionDraft();
+      const draftByMatch = memberDraft?.byMatch || {};
+
+      matchesTableBody.innerHTML = matches
+        .map((match) => {
+          const savedPred = memberPredictions[match.key];
+          const draftPred = draftByMatch[match.key] || null;
+          const draftHome = parseScore(draftPred?.score1);
+          const draftAway = parseScore(draftPred?.score2);
+          const pred = draftPred && draftHome !== null && draftAway !== null
+            ? { score1: draftHome, score2: draftAway }
+            : savedPred;
+          const real = pickResult(match.key);
+          const points = pointsForPrediction(pred, real);
+          const pred1 = draftPred ? (draftPred.score1 ?? '') : (savedPred?.score1 ?? '');
+          const pred2 = draftPred ? (draftPred.score2 ?? '') : (savedPred?.score2 ?? '');
+          const realText = real ? `${real.score1}-${real.score2}` : 'Pendiente';
+
+          return `
+            <tr>
+              <td>${formatDate(match.date)}</td>
+              <td>
+                <strong class="team-with-flag"><span class="team-flag">${flagForIso(match.iso1)}</span>${match.team1}</strong>
+                vs
+                <strong class="team-with-flag"><span class="team-flag">${flagForIso(match.iso2)}</span>${match.team2}</strong>
+                <div class="cell-sub">${match.stadium}</div>
+              </td>
+              <td>${match.phase}</td>
+              <td>
+                <div class="score-inputs" data-match-key="${match.key}">
+                  <input type="number" min="0" max="20" data-side="home" value="${pred1}" />
+                  <span>-</span>
+                  <input type="number" min="0" max="20" data-side="away" value="${pred2}" />
+                </div>
+              </td>
+              <td>${realText}</td>
+              <td>${points}</td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+
+    function renderLeaderboard() {
+      const rows = state.members.map((member) => {
+        const memberPredictions = state.predictionsByMember[member.id] || {};
+        let points = 0;
+        let exact = 0;
+        let hits = 0;
+
+        for (const match of matches) {
+          const pred = memberPredictions[match.key];
+          const real = pickResult(match.key);
+          if (!pred || !real) continue;
+          const pts = pointsForPrediction(pred, real);
+          points += pts;
+          if (pts === 3) exact += 1;
+          if (pts > 0) hits += 1;
+        }
+
+        return { member, points, exact, hits };
+      });
+
+      rows.sort((a, b) => b.points - a.points || b.exact - a.exact || b.hits - a.hits || a.member.name.localeCompare(b.member.name));
+
+      leaderboardBody.innerHTML = rows
+        .map((row, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${row.member.name}${row.member.id === state.league.ownerMemberId ? ' 👑' : ''}</td>
+            <td>${row.points}</td>
+            <td>${row.exact}</td>
+            <td>${row.hits}</td>
+          </tr>
+        `)
+        .join('');
+    }
+
+    createForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const leagueName = createLeagueName.value.trim();
+      const playerName = createPlayerName.value.trim();
+      if (!leagueName || !playerName) {
+        setStatus('Completa nombre de liga y jugador.', 'error');
+        return;
+      }
+      await createLeague(leagueName, playerName);
+      createForm.reset();
+    });
+
+    joinForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const code = joinLeagueCode.value.trim();
+      const name = joinPlayerName.value.trim();
+      if (!code || !name) {
+        setStatus('Completa codigo y nombre para unirte.', 'error');
+        return;
+      }
+      await joinLeague(code, name);
+      joinForm.reset();
+    });
+
+    leagueSwitchSelect.addEventListener('change', async () => {
+      const code = leagueSwitchSelect.value || '';
+      if (!code) return;
+      const session = getSessionForCode(code);
+      if (!session) return;
+
+      state.active.code = code;
+      state.active.memberId = session.memberId;
+      saveActive();
+      await refreshState();
+    });
+
+    savePredictionsBtn.addEventListener('click', savePredictions);
+    quickRejoinBtn.addEventListener('click', quickRejoinSelected);
+    matchesTableBody.addEventListener('input', (event) => {
+      setPredictionDraftFromInput(event.target);
+    });
+    saveResultBtn.addEventListener('click', saveManualResult);
+    autoResultsBtn.addEventListener('click', autoLoadRealResults);
+    clearResultBtn.addEventListener('click', clearManualResult);
+    resultMatchSelect.addEventListener('change', () => {
+      const leagueDraft = getLeagueDraft();
+      if (leagueDraft) {
+        leagueDraft.selectedMatchKey = resultMatchSelect.value || '';
+        saveResultDraftStore();
+      }
+      populateResultInputsFromDraftOrSaved();
+    });
+    resultHomeScore.addEventListener('input', setResultDraftForSelection);
+    resultAwayScore.addEventListener('input', setResultDraftForSelection);
+    leaveLeagueBtn.addEventListener('click', leaveLeague);
+    syncBtn.addEventListener('click', refreshState);
+
+    copyCodeBtn.addEventListener('click', async () => {
+      const code = state.active.code;
+      if (!code) return;
+
+      try {
+        await navigator.clipboard.writeText(code);
+        setStatus(`Codigo ${code} copiado.`);
+      } catch {
+        setStatus(`Codigo: ${code}`, 'warn');
+      }
+    });
+
+    if (!supabaseEnabled) {
+      setStatus('Supabase no esta configurado en este entorno. Se usa modo local (solo este navegador).', 'warn');
+    } else {
+      setStatus('Modo compartido activo con Supabase.');
+    }
+
+    refreshState();
+
+    if (state.mode === 'remote') {
+      window.setInterval(refreshState, 15000);
+    }
+  })();
+</script>
