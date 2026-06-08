@@ -13,7 +13,8 @@ export const WORLD_CUPS = [
         "team1": "Mexico",
         "team2": "South Africa",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 2,
@@ -23,7 +24,8 @@ export const WORLD_CUPS = [
         "team1": "South Korea",
         "team2": "Czech Republic",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "04:00"
       },
       {
         "id": 3,
@@ -33,7 +35,8 @@ export const WORLD_CUPS = [
         "team1": "Czech Republic",
         "team2": "South Africa",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 4,
@@ -43,7 +46,8 @@ export const WORLD_CUPS = [
         "team1": "Mexico",
         "team2": "South Korea",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 5,
@@ -53,7 +57,8 @@ export const WORLD_CUPS = [
         "team1": "Czech Republic",
         "team2": "Mexico",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 6,
@@ -63,7 +68,8 @@ export const WORLD_CUPS = [
         "team1": "South Africa",
         "team2": "South Korea",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "00:00"
       },
       {
         "id": 7,
@@ -73,7 +79,8 @@ export const WORLD_CUPS = [
         "team1": "Canada",
         "team2": "Bosnia & Herzegovina",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 8,
@@ -83,7 +90,8 @@ export const WORLD_CUPS = [
         "team1": "Qatar",
         "team2": "Switzerland",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "06:00"
       },
       {
         "id": 9,
@@ -93,7 +101,8 @@ export const WORLD_CUPS = [
         "team1": "Switzerland",
         "team2": "Bosnia & Herzegovina",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "19:00"
       },
       {
         "id": 10,
@@ -103,7 +112,8 @@ export const WORLD_CUPS = [
         "team1": "Canada",
         "team2": "Qatar",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 11,
@@ -113,7 +123,8 @@ export const WORLD_CUPS = [
         "team1": "Switzerland",
         "team2": "Canada",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "01:00"
       },
       {
         "id": 12,
@@ -123,7 +134,8 @@ export const WORLD_CUPS = [
         "team1": "Bosnia & Herzegovina",
         "team2": "Qatar",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "04:00"
       },
       {
         "id": 13,
@@ -133,7 +145,8 @@ export const WORLD_CUPS = [
         "team1": "Brazil",
         "team2": "Morocco",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "18:00"
       },
       {
         "id": 14,
@@ -143,7 +156,8 @@ export const WORLD_CUPS = [
         "team1": "Haiti",
         "team2": "Scotland",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 15,
@@ -153,7 +167,8 @@ export const WORLD_CUPS = [
         "team1": "Scotland",
         "team2": "Morocco",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "00:00"
       },
       {
         "id": 16,
@@ -163,7 +178,8 @@ export const WORLD_CUPS = [
         "team1": "Brazil",
         "team2": "Haiti",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 17,
@@ -173,7 +189,8 @@ export const WORLD_CUPS = [
         "team1": "Scotland",
         "team2": "Brazil",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 18,
@@ -183,7 +200,8 @@ export const WORLD_CUPS = [
         "team1": "Morocco",
         "team2": "Haiti",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "00:00"
       },
       {
         "id": 19,
@@ -193,7 +211,8 @@ export const WORLD_CUPS = [
         "team1": "USA",
         "team2": "Paraguay",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 20,
@@ -203,7 +222,8 @@ export const WORLD_CUPS = [
         "team1": "Australia",
         "team2": "Turkey",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "06:00"
       },
       {
         "id": 21,
@@ -213,7 +233,8 @@ export const WORLD_CUPS = [
         "team1": "USA",
         "team2": "Australia",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "19:00"
       },
       {
         "id": 22,
@@ -223,7 +244,8 @@ export const WORLD_CUPS = [
         "team1": "Turkey",
         "team2": "Paraguay",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 23,
@@ -233,7 +255,8 @@ export const WORLD_CUPS = [
         "team1": "Turkey",
         "team2": "USA",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "01:00"
       },
       {
         "id": 24,
@@ -243,7 +266,8 @@ export const WORLD_CUPS = [
         "team1": "Paraguay",
         "team2": "Australia",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "04:00"
       },
       {
         "id": 25,
@@ -253,7 +277,8 @@ export const WORLD_CUPS = [
         "team1": "Germany",
         "team2": "Curaçao",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "18:00"
       },
       {
         "id": 26,
@@ -263,7 +288,8 @@ export const WORLD_CUPS = [
         "team1": "Ivory Coast",
         "team2": "Ecuador",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 27,
@@ -273,7 +299,8 @@ export const WORLD_CUPS = [
         "team1": "Germany",
         "team2": "Ivory Coast",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "00:00"
       },
       {
         "id": 28,
@@ -283,7 +310,8 @@ export const WORLD_CUPS = [
         "team1": "Ecuador",
         "team2": "Curaçao",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 29,
@@ -293,7 +321,8 @@ export const WORLD_CUPS = [
         "team1": "Curaçao",
         "team2": "Ivory Coast",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 30,
@@ -303,7 +332,8 @@ export const WORLD_CUPS = [
         "team1": "Ecuador",
         "team2": "Germany",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "00:00"
       },
       {
         "id": 31,
@@ -313,7 +343,8 @@ export const WORLD_CUPS = [
         "team1": "Netherlands",
         "team2": "Japan",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "02:30"
       },
       {
         "id": 32,
@@ -323,7 +354,8 @@ export const WORLD_CUPS = [
         "team1": "Sweden",
         "team2": "Tunisia",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "05:00"
       },
       {
         "id": 33,
@@ -333,7 +365,8 @@ export const WORLD_CUPS = [
         "team1": "Netherlands",
         "team2": "Sweden",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "19:00"
       },
       {
         "id": 34,
@@ -343,7 +376,8 @@ export const WORLD_CUPS = [
         "team1": "Tunisia",
         "team2": "Japan",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 35,
@@ -353,7 +387,8 @@ export const WORLD_CUPS = [
         "team1": "Japan",
         "team2": "Sweden",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "02:00"
       },
       {
         "id": 36,
@@ -363,7 +398,8 @@ export const WORLD_CUPS = [
         "team1": "Tunisia",
         "team2": "Netherlands",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "06:00"
       },
       {
         "id": 37,
@@ -373,7 +409,8 @@ export const WORLD_CUPS = [
         "team1": "Belgium",
         "team2": "Egypt",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "18:00"
       },
       {
         "id": 38,
@@ -383,7 +420,8 @@ export const WORLD_CUPS = [
         "team1": "Iran",
         "team2": "New Zealand",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 39,
@@ -393,7 +431,8 @@ export const WORLD_CUPS = [
         "team1": "Belgium",
         "team2": "Iran",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "00:00"
       },
       {
         "id": 40,
@@ -403,7 +442,8 @@ export const WORLD_CUPS = [
         "team1": "New Zealand",
         "team2": "Egypt",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 41,
@@ -413,7 +453,8 @@ export const WORLD_CUPS = [
         "team1": "Egypt",
         "team2": "Iran",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "19:00"
       },
       {
         "id": 42,
@@ -423,7 +464,8 @@ export const WORLD_CUPS = [
         "team1": "New Zealand",
         "team2": "Belgium",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "23:00"
       },
       {
         "id": 43,
@@ -433,7 +475,8 @@ export const WORLD_CUPS = [
         "team1": "Spain",
         "team2": "Cape Verde",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "02:00"
       },
       {
         "id": 44,
@@ -443,7 +486,8 @@ export const WORLD_CUPS = [
         "team1": "Saudi Arabia",
         "team2": "Uruguay",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "05:00"
       },
       {
         "id": 45,
@@ -453,7 +497,8 @@ export const WORLD_CUPS = [
         "team1": "Spain",
         "team2": "Saudi Arabia",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "19:00"
       },
       {
         "id": 46,
@@ -463,7 +508,8 @@ export const WORLD_CUPS = [
         "team1": "Uruguay",
         "team2": "Cape Verde",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 47,
@@ -473,7 +519,8 @@ export const WORLD_CUPS = [
         "team1": "Cape Verde",
         "team2": "Saudi Arabia",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "01:00"
       },
       {
         "id": 48,
@@ -483,7 +530,8 @@ export const WORLD_CUPS = [
         "team1": "Uruguay",
         "team2": "Spain",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "04:00"
       },
       {
         "id": 49,
@@ -493,7 +541,8 @@ export const WORLD_CUPS = [
         "team1": "France",
         "team2": "Senegal",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 50,
@@ -503,7 +552,8 @@ export const WORLD_CUPS = [
         "team1": "Iraq",
         "team2": "Norway",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 51,
@@ -513,7 +563,8 @@ export const WORLD_CUPS = [
         "team1": "France",
         "team2": "Iraq",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "00:00"
       },
       {
         "id": 52,
@@ -523,7 +574,8 @@ export const WORLD_CUPS = [
         "team1": "Norway",
         "team2": "Senegal",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "00:00"
       },
       {
         "id": 53,
@@ -533,7 +585,8 @@ export const WORLD_CUPS = [
         "team1": "Norway",
         "team2": "France",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 54,
@@ -543,7 +596,8 @@ export const WORLD_CUPS = [
         "team1": "Senegal",
         "team2": "Iraq",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 55,
@@ -553,7 +607,8 @@ export const WORLD_CUPS = [
         "team1": "Argentina",
         "team2": "Algeria",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 56,
@@ -563,7 +618,8 @@ export const WORLD_CUPS = [
         "team1": "Austria",
         "team2": "Jordan",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 57,
@@ -573,7 +629,8 @@ export const WORLD_CUPS = [
         "team1": "Argentina",
         "team2": "Austria",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "01:00"
       },
       {
         "id": 58,
@@ -583,7 +640,8 @@ export const WORLD_CUPS = [
         "team1": "Jordan",
         "team2": "Algeria",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "01:00"
       },
       {
         "id": 59,
@@ -593,7 +651,8 @@ export const WORLD_CUPS = [
         "team1": "Algeria",
         "team2": "Austria",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "04:00"
       },
       {
         "id": 60,
@@ -603,7 +662,8 @@ export const WORLD_CUPS = [
         "team1": "Jordan",
         "team2": "Argentina",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "04:00"
       },
       {
         "id": 61,
@@ -613,7 +673,8 @@ export const WORLD_CUPS = [
         "team1": "Portugal",
         "team2": "DR Congo",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 62,
@@ -623,7 +684,8 @@ export const WORLD_CUPS = [
         "team1": "Uzbekistan",
         "team2": "Colombia",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 63,
@@ -633,7 +695,8 @@ export const WORLD_CUPS = [
         "team1": "Portugal",
         "team2": "Uzbekistan",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "02:00"
       },
       {
         "id": 64,
@@ -643,7 +706,8 @@ export const WORLD_CUPS = [
         "team1": "Colombia",
         "team2": "DR Congo",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "02:00"
       },
       {
         "id": 65,
@@ -653,7 +717,8 @@ export const WORLD_CUPS = [
         "team1": "Colombia",
         "team2": "Portugal",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "05:00"
       },
       {
         "id": 66,
@@ -663,7 +728,8 @@ export const WORLD_CUPS = [
         "team1": "DR Congo",
         "team2": "Uzbekistan",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "05:00"
       },
       {
         "id": 67,
@@ -673,7 +739,8 @@ export const WORLD_CUPS = [
         "team1": "England",
         "team2": "Croatia",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "23:00"
       },
       {
         "id": 68,
@@ -683,7 +750,8 @@ export const WORLD_CUPS = [
         "team1": "Ghana",
         "team2": "Panama",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "23:00"
       },
       {
         "id": 69,
@@ -693,7 +761,8 @@ export const WORLD_CUPS = [
         "team1": "England",
         "team2": "Ghana",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "01:30"
       },
       {
         "id": 70,
@@ -703,7 +772,8 @@ export const WORLD_CUPS = [
         "team1": "Panama",
         "team2": "Croatia",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "01:30"
       },
       {
         "id": 71,
@@ -713,7 +783,8 @@ export const WORLD_CUPS = [
         "team1": "Panama",
         "team2": "England",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "04:00"
       },
       {
         "id": 72,
@@ -723,7 +794,8 @@ export const WORLD_CUPS = [
         "team1": "Croatia",
         "team2": "Ghana",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "04:00"
       },
       {
         "id": 73,
@@ -733,7 +805,8 @@ export const WORLD_CUPS = [
         "team1": "2A",
         "team2": "2B",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 74,
@@ -743,7 +816,8 @@ export const WORLD_CUPS = [
         "team1": "1E",
         "team2": "3A/B/C/D/F",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "19:00"
       },
       {
         "id": 75,
@@ -753,7 +827,8 @@ export const WORLD_CUPS = [
         "team1": "1F",
         "team2": "2C",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:30"
       },
       {
         "id": 76,
@@ -763,7 +838,8 @@ export const WORLD_CUPS = [
         "team1": "1C",
         "team2": "2F",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 77,
@@ -773,7 +849,8 @@ export const WORLD_CUPS = [
         "team1": "1I",
         "team2": "3C/D/F/G/H",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "19:00"
       },
       {
         "id": 78,
@@ -783,7 +860,8 @@ export const WORLD_CUPS = [
         "team1": "2E",
         "team2": "2I",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "23:00"
       },
       {
         "id": 79,
@@ -793,7 +871,8 @@ export const WORLD_CUPS = [
         "team1": "1A",
         "team2": "3C/E/F/H/I",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 80,
@@ -803,7 +882,8 @@ export const WORLD_CUPS = [
         "team1": "1L",
         "team2": "3E/H/I/J/K",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "18:00"
       },
       {
         "id": 81,
@@ -813,7 +893,8 @@ export const WORLD_CUPS = [
         "team1": "1D",
         "team2": "3B/E/F/I/J",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 82,
@@ -823,7 +904,8 @@ export const WORLD_CUPS = [
         "team1": "1G",
         "team2": "3A/E/H/I/J",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "02:00"
       },
       {
         "id": 83,
@@ -833,7 +915,8 @@ export const WORLD_CUPS = [
         "team1": "2K",
         "team2": "2L",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 84,
@@ -843,7 +926,8 @@ export const WORLD_CUPS = [
         "team1": "1H",
         "team2": "2J",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "01:00"
       },
       {
         "id": 85,
@@ -853,7 +937,8 @@ export const WORLD_CUPS = [
         "team1": "1B",
         "team2": "3E/F/G/I/J",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "05:00"
       },
       {
         "id": 86,
@@ -863,7 +948,8 @@ export const WORLD_CUPS = [
         "team1": "1J",
         "team2": "2H",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "20:00"
       },
       {
         "id": 87,
@@ -873,7 +959,8 @@ export const WORLD_CUPS = [
         "team1": "1K",
         "team2": "3D/E/I/J/L",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "00:00"
       },
       {
         "id": 88,
@@ -883,7 +970,8 @@ export const WORLD_CUPS = [
         "team1": "2D",
         "team2": "2G",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:30"
       },
       {
         "id": 89,
@@ -893,7 +981,8 @@ export const WORLD_CUPS = [
         "team1": "W74",
         "team2": "W77",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "19:00"
       },
       {
         "id": 90,
@@ -903,7 +992,8 @@ export const WORLD_CUPS = [
         "team1": "W73",
         "team2": "W75",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "23:00"
       },
       {
         "id": 91,
@@ -913,7 +1003,8 @@ export const WORLD_CUPS = [
         "team1": "W76",
         "team2": "W78",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 92,
@@ -923,7 +1014,8 @@ export const WORLD_CUPS = [
         "team1": "W79",
         "team2": "W80",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "02:00"
       },
       {
         "id": 93,
@@ -933,7 +1025,8 @@ export const WORLD_CUPS = [
         "team1": "W83",
         "team2": "W84",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 94,
@@ -943,7 +1036,8 @@ export const WORLD_CUPS = [
         "team1": "W81",
         "team2": "W82",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "02:00"
       },
       {
         "id": 95,
@@ -953,7 +1047,8 @@ export const WORLD_CUPS = [
         "team1": "W86",
         "team2": "W88",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "18:00"
       },
       {
         "id": 96,
@@ -963,7 +1058,8 @@ export const WORLD_CUPS = [
         "team1": "W85",
         "team2": "W87",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 97,
@@ -973,7 +1069,8 @@ export const WORLD_CUPS = [
         "team1": "W89",
         "team2": "W90",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "22:00"
       },
       {
         "id": 98,
@@ -983,7 +1080,8 @@ export const WORLD_CUPS = [
         "team1": "W93",
         "team2": "W94",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 99,
@@ -993,7 +1091,8 @@ export const WORLD_CUPS = [
         "team1": "W91",
         "team2": "W92",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "23:00"
       },
       {
         "id": 100,
@@ -1003,7 +1102,8 @@ export const WORLD_CUPS = [
         "team1": "W95",
         "team2": "W96",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "03:00"
       },
       {
         "id": 101,
@@ -1013,7 +1113,8 @@ export const WORLD_CUPS = [
         "team1": "W97",
         "team2": "W98",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 102,
@@ -1023,7 +1124,8 @@ export const WORLD_CUPS = [
         "team1": "W99",
         "team2": "W100",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       },
       {
         "id": 103,
@@ -1033,7 +1135,8 @@ export const WORLD_CUPS = [
         "team1": "L101",
         "team2": "L102",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "23:00"
       },
       {
         "id": 104,
@@ -1043,7 +1146,8 @@ export const WORLD_CUPS = [
         "team1": "W101",
         "team2": "W102",
         "score1": null,
-        "score2": null
+        "score2": null,
+        "time": "21:00"
       }
     ]
   },

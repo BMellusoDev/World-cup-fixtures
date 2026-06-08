@@ -4,12 +4,80 @@ import WorldCupSelector from '../components/WorldCupSelector.astro';
 import { db } from '../lib/db.js';
 
 const worldcups = db.getWorldCups();
+const upcoming = worldcups.find((wc) => wc.upcoming) || worldcups[0] || null;
+
+const firstKickoff = (upcoming?.matches || [])
+  .map((match) => {
+    const rawTime = ((match as any).time || '').trim();
+    const time = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : '00:00';
+    return {
+      date: match.date || '',
+      time,
+      key: `${match.date || ''}T${time}`
+    };
+  })
+  .filter((item) => item.date)
+  .sort((a, b) => a.key.localeCompare(b.key))[0] || null;
+
+const homeBootstrap = JSON.stringify({
+  kickoffDate: firstKickoff?.date || '',
+  kickoffTime: firstKickoff?.time || ''
+});
 ---
 
 <Layout title="World Cup Fixtures">
   <main class="container page-home">
     <h1 data-i18n="homeTitle">World Cup Fixtures</h1>
-    <p class="subtitle" data-i18n="homeSubtitle">Todos los resultados historicos + Mundial 2026</p>
+    <p class="subtitle" data-i18n="homeSubtitle">Todos los resultados históricos + Mundial 2026</p>
+    <section class="tournament-countdown" id="home-countdown-card">
+      <p class="muted">Cuenta regresiva al inicio</p>
+      <p id="home-countdown-value" class="tournament-countdown-value">Calculando...</p>
+      <p id="home-countdown-note" class="tournament-countdown-note"></p>
+    </section>
     <WorldCupSelector worldcups={worldcups} />
   </main>
+  <script id="home-bootstrap" type="application/json" set:html={homeBootstrap}></script>
 </Layout>
+
+<script>
+  (() => {
+    const raw = document.getElementById('home-bootstrap')?.textContent || '{}';
+    const { kickoffDate = '', kickoffTime = '' } = JSON.parse(raw);
+
+    const card = document.getElementById('home-countdown-card');
+    const valueEl = document.getElementById('home-countdown-value');
+    const noteEl = document.getElementById('home-countdown-note');
+
+    function formatRemainingMs(ms) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+    }
+
+    function renderHomeCountdown() {
+      if (!card || !valueEl || !noteEl) return;
+      if (!kickoffDate) {
+        card.hidden = true;
+        return;
+      }
+
+      const time = /^\d{2}:\d{2}$/.test(String(kickoffTime || '').trim()) ? kickoffTime : '00:00';
+      const kickoff = new Date(`${kickoffDate}T${time}:00`);
+      if (Number.isNaN(kickoff.getTime())) {
+        valueEl.textContent = 'Fecha inválida';
+        noteEl.textContent = '';
+        return;
+      }
+
+      const diff = kickoff.getTime() - Date.now();
+      valueEl.textContent = diff <= 0 ? 'El Mundial ya comenzó' : formatRemainingMs(diff);
+      noteEl.textContent = `Inicio estimado: ${new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(kickoff)} (hora local)`;
+    }
+
+    renderHomeCountdown();
+    window.setInterval(renderHomeCountdown, 1000);
+  })();
+</script>

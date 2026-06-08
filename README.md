@@ -42,15 +42,15 @@ All commands are run from the root of the project, from a terminal:
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
 
-## Pronosticos (Porra entre amigos)
+## Pronósticos (Porra entre amigos)
 
 La ruta [src/pages/pronosticos.astro](src/pages/pronosticos.astro) ya incluye flujo funcional de porra:
 
 - crear liga
-- unirse por codigo
-- cargar pronosticos
+- unirse por código
+- cargar pronósticos
 - cargar resultados manuales
-- tabla de posiciones automatica
+- tabla de posiciones automática
 
 ### Modo compartido (recomendado)
 
@@ -68,4 +68,4 @@ PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 4. Ejecutar `npm run dev`.
 5. Ir a `/pronosticos` y crear una liga.
 
-Si faltan variables de entorno, la pagina funciona en modo local (solo navegador actual).
+Si faltan variables de entorno, la página funciona en modo local (solo navegador actual).

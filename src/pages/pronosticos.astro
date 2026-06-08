@@ -11,6 +11,7 @@ const matches = (upcoming?.matches || []).map((match) => ({
   id: match.id,
   phase: match.phase || 'Otros',
   date: match.date || '',
+  time: (match as any).time || '',
   stadium: match.stadium || '',
   team1: match.team1 || '',
   team2: match.team2 || '',
@@ -28,19 +29,24 @@ const poolBootstrap = JSON.stringify({
 });
 ---
 
-<Layout title="Pronosticos | World Cup Fixtures">
+<Layout title="Pronósticos | World Cup Fixtures">
   <main class="container page-predictions">
     <section class="card predictions-hero predictions-hero--compact">
       <p class="predictions-kicker">Porra con amigos</p>
-      <h1>Pronosticos</h1>
+      <h1>Pronósticos</h1>
       <p class="subtitle predictions-subtitle">
-        Crea una liga, suma participantes y carga pronosticos por partido.
-        El ranking se calcula automaticamente: 3 puntos exacto, 1 punto resultado.
+        Crea una liga, suma participantes y carga pronósticos por partido.
+        El ranking se calcula automáticamente: 3 puntos exacto, 1 punto resultado.
       </p>
       <div class="predictions-meta">
         <span class="meta-pill">Mundial {seasonYear}</span>
         <span class="meta-pill">Partidos {matches.length}</span>
         <span class="meta-pill" id="pool-mode-pill">Modo: iniciando</span>
+      </div>
+      <div class="tournament-countdown" id="tournament-countdown-card">
+        <p class="muted">Cuenta regresiva al inicio</p>
+        <p id="tournament-countdown-value" class="tournament-countdown-value">Calculando...</p>
+        <p id="tournament-countdown-note" class="tournament-countdown-note"></p>
       </div>
     </section>
 
@@ -64,7 +70,7 @@ const poolBootstrap = JSON.stringify({
         <h2>Unirse a liga</h2>
         <form id="join-league-form" class="form-stack">
           <label>
-            Codigo
+            Código
             <input id="join-league-code" type="text" maxlength="8" placeholder="Ej: A7K2QZ" required />
           </label>
           <label>
@@ -79,7 +85,7 @@ const poolBootstrap = JSON.stringify({
         <h2>Reingresar</h2>
         <div class="form-stack">
           <label>
-            Sesion guardada
+            Sesión guardada
             <select id="quick-rejoin-select"></select>
           </label>
           <button id="quick-rejoin-btn" class="btn" type="button">Reingresar seleccionado</button>
@@ -92,10 +98,10 @@ const poolBootstrap = JSON.stringify({
         <div>
           <p class="muted">Liga activa</p>
           <h2 id="league-title">-</h2>
-          <p class="muted">Codigo: <strong id="league-code">-</strong></p>
+          <p class="muted">Código: <strong id="league-code">-</strong></p>
         </div>
         <div class="league-actions">
-          <button id="copy-code-btn" class="btn btn-small" type="button">Copiar codigo</button>
+          <button id="copy-code-btn" class="btn btn-small" type="button">Copiar código</button>
           <button id="sync-btn" class="btn btn-small" type="button">Sincronizar</button>
           <button id="leave-league-btn" class="btn btn-ghost btn-small" type="button">Salir de liga</button>
         </div>
@@ -156,14 +162,14 @@ const poolBootstrap = JSON.stringify({
 
     <section class="card predictions-board" id="predictions-card" hidden>
       <div class="board-head">
-        <h2>Mis pronosticos</h2>
-        <button id="save-predictions-btn" class="btn" type="button">Guardar pronosticos</button>
+        <h2>Mis pronósticos</h2>
+        <button id="save-predictions-btn" class="btn" type="button">Guardar pronósticos</button>
       </div>
       <div class="table-wrap">
         <table class="pred-table pred-table--matches" id="matches-table">
           <thead>
             <tr>
-              <th>Fecha</th>
+              <th>Fecha y hora</th>
               <th>Partido</th>
               <th>Fase</th>
               <th>Tu pronostico</th>
@@ -203,8 +209,12 @@ const poolBootstrap = JSON.stringify({
     const RESULT_DRAFTS_KEY = 'wcf.pool.resultDrafts.v1';
     const PREDICTION_DRAFTS_KEY = 'wcf.pool.predictionDrafts.v1';
     const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const PREDICTION_LOCK_MINUTES = 5;
 
     const modePill = document.getElementById('pool-mode-pill');
+    const tournamentCountdownCard = document.getElementById('tournament-countdown-card');
+    const tournamentCountdownValue = document.getElementById('tournament-countdown-value');
+    const tournamentCountdownNote = document.getElementById('tournament-countdown-note');
     const createForm = document.getElementById('create-league-form');
     const joinForm = document.getElementById('join-league-form');
     const createLeagueName = document.getElementById('create-league-name');
@@ -247,6 +257,8 @@ const poolBootstrap = JSON.stringify({
         .filter((m) => m.score1 !== null && m.score2 !== null)
         .map((m) => [m.key, { score1: Number(m.score1), score2: Number(m.score2) }])
     );
+
+    const matchesByKey = new Map(matches.map((match) => [match.key, match]));
 
     const state = {
       mode: supabaseEnabled ? 'remote' : 'local',
@@ -406,6 +418,8 @@ const poolBootstrap = JSON.stringify({
 
       const key = wrapper.getAttribute('data-match-key');
       if (!key) return;
+      const match = matchesByKey.get(key);
+      if (isMatchLocked(match)) return;
 
       const homeInput = wrapper.querySelector('input[data-side="home"]');
       const awayInput = wrapper.querySelector('input[data-side="away"]');
@@ -515,6 +529,11 @@ const poolBootstrap = JSON.stringify({
       return new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short' }).format(d);
     }
 
+    function formatTime(value) {
+      const v = String(value || '').trim();
+      return /^\d{2}:\d{2}$/.test(v) ? v : '00:00';
+    }
+
     function pickResult(matchKey) {
       return state.results[matchKey] || baseResults[matchKey] || null;
     }
@@ -542,6 +561,55 @@ const poolBootstrap = JSON.stringify({
       }
 
       return i18n.supportsFlagEmoji() ? i18n.toFlagEmoji(safeIso) : '⚑';
+    }
+
+    function parseKickoffDate(match) {
+      if (!match || !match.date) return null;
+      const rawTime = String(match.time || '').trim();
+      const time = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : '00:00';
+      const kickoff = new Date(`${match.date}T${time}:00`);
+      return Number.isNaN(kickoff.getTime()) ? null : kickoff;
+    }
+
+    function isMatchLocked(match, now = new Date()) {
+      const kickoff = parseKickoffDate(match);
+      if (!kickoff) return false;
+      return now.getTime() >= (kickoff.getTime() - (PREDICTION_LOCK_MINUTES * 60 * 1000));
+    }
+
+    function formatRemainingMs(ms) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+    }
+
+    function renderTournamentCountdown() {
+      if (!tournamentCountdownCard || !tournamentCountdownValue || !tournamentCountdownNote) return;
+      let kickoff = null;
+      for (const match of matches) {
+        const parsed = parseKickoffDate(match);
+        if (!parsed) continue;
+        if (!kickoff || parsed.getTime() < kickoff.getTime()) kickoff = parsed;
+      }
+
+      if (!kickoff) {
+        tournamentCountdownCard.hidden = true;
+        return;
+      }
+
+      if (Number.isNaN(kickoff.getTime())) {
+        tournamentCountdownValue.textContent = 'Fecha invalida';
+        tournamentCountdownNote.textContent = '';
+        return;
+      }
+
+      const now = new Date();
+      const diff = kickoff.getTime() - now.getTime();
+      tournamentCountdownValue.textContent = diff <= 0 ? 'El Mundial ya comenzó' : formatRemainingMs(diff);
+      tournamentCountdownNote.textContent = `Inicio estimado: ${new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(kickoff)} (hora local)`;
     }
 
     async function refreshState() {
@@ -585,7 +653,7 @@ const poolBootstrap = JSON.stringify({
         state.members = [];
         state.predictionsByMember = {};
         state.results = {};
-        setStatus('No se encontro la liga en Supabase.', 'error');
+        setStatus('No se encontró la liga en Supabase.', 'error');
         return;
       }
 
@@ -745,7 +813,7 @@ const poolBootstrap = JSON.stringify({
     async function joinLeague(codeRaw, playerName) {
       const code = normalizeCode(codeRaw);
       if (!code) {
-        setStatus('Codigo invalido.', 'error');
+        setStatus('Código inválido.', 'error');
         return;
       }
 
@@ -776,7 +844,7 @@ const poolBootstrap = JSON.stringify({
         : fallback;
 
       if (!session) {
-        setStatus('Selecciona una sesion valida para reingresar.', 'warn');
+        setStatus('Selecciona una sesión válida para reingresar.', 'warn');
         return;
       }
 
@@ -790,7 +858,7 @@ const poolBootstrap = JSON.stringify({
         return;
       }
 
-      setStatus('No se pudo abrir esa sesion. Prueba con otra o entra con codigo y nombre.', 'warn');
+      setStatus('No se pudo abrir esa sesión. Prueba con otra o entra con código y nombre.', 'warn');
     }
 
     async function joinLeagueRemote(code, playerName) {
@@ -803,7 +871,7 @@ const poolBootstrap = JSON.stringify({
         .maybeSingle();
 
       if (leagueError || !league) {
-        setStatus('No existe una liga con ese codigo.', 'error');
+        setStatus('No existe una liga con ese código.', 'error');
         return;
       }
 
@@ -847,7 +915,7 @@ const poolBootstrap = JSON.stringify({
     function joinLeagueLocal(code, playerName) {
       const league = state.localStore.leagues[code];
       if (!league) {
-        setStatus('No existe una liga local con ese codigo. Para jugar con amigos en distintos dispositivos, activa modo compartido (Supabase).', 'error');
+        setStatus('No existe una liga local con ese código. Para jugar con amigos en distintos dispositivos, activa modo compartido (Supabase).', 'error');
         return;
       }
 
@@ -876,14 +944,26 @@ const poolBootstrap = JSON.stringify({
       if (!state.league || !state.active.memberId) return;
 
       const rows = [];
+      const memberPredictions = state.predictionsByMember[state.active.memberId] || {};
       const wrappers = matchesTableBody.querySelectorAll('.score-inputs');
       wrappers.forEach((wrapper) => {
         const key = wrapper.getAttribute('data-match-key');
+        if (!key) return;
+
+        const match = matchesByKey.get(key);
+        if (isMatchLocked(match)) {
+          const saved = memberPredictions[key];
+          if (saved) {
+            rows.push({ match_key: key, pred_home: Number(saved.score1), pred_away: Number(saved.score2) });
+          }
+          return;
+        }
+
         const homeInput = wrapper.querySelector('input[data-side="home"]');
         const awayInput = wrapper.querySelector('input[data-side="away"]');
         const home = parseScore(homeInput ? homeInput.value : '');
         const away = parseScore(awayInput ? awayInput.value : '');
-        if (key && home !== null && away !== null) {
+        if (home !== null && away !== null) {
           rows.push({ match_key: key, pred_home: home, pred_away: away });
         }
       });
@@ -908,7 +988,7 @@ const poolBootstrap = JSON.stringify({
 
           const { error } = await supabase.from('pool_predictions').insert(payload);
           if (error) {
-            setStatus('No se pudieron guardar los pronosticos.', 'error');
+            setStatus('No se pudieron guardar los pronósticos.', 'error');
             return;
           }
         }
@@ -924,7 +1004,7 @@ const poolBootstrap = JSON.stringify({
         saveLocalStore();
       }
 
-      setStatus('Pronosticos guardados.');
+      setStatus('Pronósticos guardados.');
       clearMemberPredictionDraft();
       await refreshState();
     }
@@ -942,7 +1022,7 @@ const poolBootstrap = JSON.stringify({
       const away = parseScore(resultAwayScore.value);
 
       if (!key || home === null || away === null) {
-        setStatus('Ingresa resultado valido para guardar.', 'error');
+        setStatus('Ingresa un resultado válido para guardar.', 'error');
         return;
       }
 
@@ -1208,9 +1288,11 @@ const poolBootstrap = JSON.stringify({
       const memberPredictions = state.predictionsByMember[state.active.memberId] || {};
       const memberDraft = getMemberPredictionDraft();
       const draftByMatch = memberDraft?.byMatch || {};
+      const now = new Date();
 
       matchesTableBody.innerHTML = matches
         .map((match) => {
+          const locked = isMatchLocked(match, now);
           const savedPred = memberPredictions[match.key];
           const draftPred = draftByMatch[match.key] || null;
           const draftHome = parseScore(draftPred?.score1);
@@ -1223,10 +1305,14 @@ const poolBootstrap = JSON.stringify({
           const pred1 = draftPred ? (draftPred.score1 ?? '') : (savedPred?.score1 ?? '');
           const pred2 = draftPred ? (draftPred.score2 ?? '') : (savedPred?.score2 ?? '');
           const realText = real ? `${real.score1}-${real.score2}` : 'Pendiente';
+          const lockText = locked ? '<div class="cell-sub lock-note">Cerrado por horario</div>' : '';
 
           return `
             <tr>
-              <td>${formatDate(match.date)}</td>
+              <td>
+                <div>${formatDate(match.date)}</div>
+                <div class="cell-sub">${formatTime(match.time)}</div>
+              </td>
               <td>
                 <strong class="team-with-flag"><span class="team-flag">${flagForIso(match.iso1)}</span>${match.team1}</strong>
                 vs
@@ -1236,10 +1322,11 @@ const poolBootstrap = JSON.stringify({
               <td>${match.phase}</td>
               <td>
                 <div class="score-inputs" data-match-key="${match.key}">
-                  <input type="number" min="0" max="20" data-side="home" value="${pred1}" />
+                  <input type="number" min="0" max="20" data-side="home" value="${pred1}" ${locked ? 'disabled' : ''} />
                   <span>-</span>
-                  <input type="number" min="0" max="20" data-side="away" value="${pred2}" />
+                  <input type="number" min="0" max="20" data-side="away" value="${pred2}" ${locked ? 'disabled' : ''} />
                 </div>
+                ${lockText}
               </td>
               <td>${realText}</td>
               <td>${points}</td>
@@ -1301,7 +1388,7 @@ const poolBootstrap = JSON.stringify({
       const code = joinLeagueCode.value.trim();
       const name = joinPlayerName.value.trim();
       if (!code || !name) {
-        setStatus('Completa codigo y nombre para unirte.', 'error');
+        setStatus('Completa código y nombre para unirte.', 'error');
         return;
       }
       await joinLeague(code, name);
@@ -1347,19 +1434,22 @@ const poolBootstrap = JSON.stringify({
 
       try {
         await navigator.clipboard.writeText(code);
-        setStatus(`Codigo ${code} copiado.`);
+        setStatus(`Código ${code} copiado.`);
       } catch {
-        setStatus(`Codigo: ${code}`, 'warn');
+        setStatus(`Código: ${code}`, 'warn');
       }
     });
 
     if (!supabaseEnabled) {
-      setStatus('Supabase no esta configurado en este entorno. Se usa modo local (solo este navegador).', 'warn');
+      setStatus('Supabase no está configurado en este entorno. Se usa modo local (solo este navegador).', 'warn');
     } else {
       setStatus('Modo compartido activo con Supabase.');
     }
 
     refreshState();
+
+    renderTournamentCountdown();
+    window.setInterval(renderTournamentCountdown, 1000);
 
     if (state.mode === 'remote') {
       window.setInterval(refreshState, 15000);

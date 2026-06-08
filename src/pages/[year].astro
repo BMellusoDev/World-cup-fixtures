@@ -94,12 +94,6 @@ const orderedPhases = Object.entries(phaseGroups) as [string, any[]][];
                   </p>
                   <p class="match-penalties" hidden></p>
                   <p class="match-stadium">{match.stadium}</p>
-                  <p class="match-coaches">
-                    <span data-i18n="coachLabel">DT</span>:
-                    <span data-coach-name={((match as any).coach1 ?? '') as string}>{((match as any).coach1 ?? '—') as string}</span>
-                    <span data-i18n="versus">vs</span>
-                    <span data-coach-name={((match as any).coach2 ?? '') as string}>{((match as any).coach2 ?? '—') as string}</span>
-                  </p>
                   <span class="match-more-btn" data-i18n="learnMore">Saber más →</span>
                 </article>
               </a>
@@ -119,12 +113,9 @@ const orderedPhases = Object.entries(phaseGroups) as [string, any[]][];
 
     async function hydrateCardMeta(card, slug) {
       const timeEl = card.querySelector('[data-match-time]');
-      const coachEls = Array.from(card.querySelectorAll('[data-coach-name]'));
-
       const needsTime = !!timeEl && !(timeEl.getAttribute('data-match-time') || '').trim();
-      const needsCoaches = coachEls.some((el) => !(el.getAttribute('data-coach-name') || '').trim());
 
-      if (!needsTime && !needsCoaches) {
+      if (!needsTime) {
         return;
       }
 
@@ -135,25 +126,6 @@ const orderedPhases = Object.entries(phaseGroups) as [string, any[]][];
 
         if (needsTime && timeEl && detail.match_time) {
           timeEl.textContent = detail.match_time;
-        }
-
-        if (needsCoaches && Array.isArray(detail.managers) && coachEls.length >= 2) {
-          const homeNames = detail.managers
-            .filter((m) => m && m.home_team)
-            .map((m) => m.manager)
-            .filter(Boolean);
-
-          const awayNames = detail.managers
-            .filter((m) => m && !m.home_team)
-            .map((m) => m.manager)
-            .filter(Boolean);
-
-          if (homeNames.length) {
-            coachEls[0].textContent = homeNames.join(' / ');
-          }
-          if (awayNames.length) {
-            coachEls[1].textContent = awayNames.join(' / ');
-          }
         }
       } catch {
         // non-critical
