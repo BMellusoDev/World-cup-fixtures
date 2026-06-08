@@ -1277,7 +1277,7 @@ h1 {
 }
 
 @media (max-width: 1000px) {
-  .predictions-board .table-wrap {
+  #predictions-card .table-wrap {
     overflow-x: hidden;
   }
 
@@ -1306,25 +1306,19 @@ h1 {
     width: 100%;
   }
 
-  .pred-table--matches thead,
-  #leaderboard-table thead {
+  .pred-table--matches thead {
     display: none;
   }
 
   .pred-table--matches,
   .pred-table--matches tbody,
   .pred-table--matches tr,
-  .pred-table--matches td,
-  #leaderboard-table,
-  #leaderboard-table tbody,
-  #leaderboard-table tr,
-  #leaderboard-table td {
+  .pred-table--matches td {
     display: block;
     width: 100%;
   }
 
-  .pred-table--matches tr,
-  #leaderboard-table tr {
+  .pred-table--matches tr {
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 10px;
     margin-bottom: 0.8rem;
@@ -1332,19 +1326,16 @@ h1 {
     background: rgba(255, 255, 255, 0.03);
   }
 
-  .pred-table--matches td,
-  #leaderboard-table td {
+  .pred-table--matches td {
     border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
     padding: 0.45rem 0.25rem;
   }
 
-  .pred-table--matches td:last-child,
-  #leaderboard-table td:last-child {
+  .pred-table--matches td:last-child {
     border-bottom: none;
   }
 
-  .pred-table--matches td::before,
-  #leaderboard-table td::before {
+  .pred-table--matches td::before {
     display: block;
     margin-bottom: 0.2rem;
     font-size: 0.72rem;
@@ -1359,11 +1350,6 @@ h1 {
   .pred-table--matches td:nth-child(4)::before { content: 'Pronóstico'; }
   .pred-table--matches td:nth-child(5)::before { content: 'Resultado'; }
   .pred-table--matches td:nth-child(6)::before { content: 'Puntos'; }
-  #leaderboard-table td:nth-child(1)::before { content: '#'; }
-  #leaderboard-table td:nth-child(2)::before { content: 'Jugador'; }
-  #leaderboard-table td:nth-child(3)::before { content: 'Puntos'; }
-  #leaderboard-table td:nth-child(4)::before { content: 'Exactos'; }
-  #leaderboard-table td:nth-child(5)::before { content: 'Aciertos'; }
 
   .pred-table--matches .score-inputs {
     width: 100%;
