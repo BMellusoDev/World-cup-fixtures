@@ -162,9 +162,16 @@ const poolBootstrap = JSON.stringify({
 
     <section class="card predictions-board" id="predictions-card" hidden>
       <div class="board-head">
-        <h2>Mis pronósticos</h2>
-        <button id="save-predictions-btn" class="btn" type="button">Guardar pronósticos</button>
+        <h2 id="predictions-title">Mis pronósticos</h2>
+        <div class="board-head-actions">
+          <label class="viewer-select-label">
+            Ver pronósticos de
+            <select id="prediction-viewer-select"></select>
+          </label>
+          <button id="save-predictions-btn" class="btn" type="button">Guardar pronósticos</button>
+        </div>
       </div>
+      <p id="predictions-readonly-note" class="muted" hidden></p>
       <div class="table-wrap">
         <table class="pred-table pred-table--matches" id="matches-table">
           <thead>
@@ -210,6 +217,7 @@ const poolBootstrap = JSON.stringify({
     const PREDICTION_DRAFTS_KEY = 'wcf.pool.predictionDrafts.v1';
     const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     const PREDICTION_LOCK_MINUTES = 5;
+    const SOURCE_TIMEZONE = 'Europe/Madrid';
 
     const modePill = document.getElementById('pool-mode-pill');
     const tournamentCountdownCard = document.getElementById('tournament-countdown-card');
@@ -244,6 +252,9 @@ const poolBootstrap = JSON.stringify({
     const clearResultBtn = document.getElementById('clear-result-btn');
 
     const savePredictionsBtn = document.getElementById('save-predictions-btn');
+    const predictionViewerSelect = document.getElementById('prediction-viewer-select');
+    const predictionsTitle = document.getElementById('predictions-title');
+    const predictionsReadOnlyNote = document.getElementById('predictions-readonly-note');
     const quickRejoinSelect = document.getElementById('quick-rejoin-select');
     const quickRejoinBtn = document.getElementById('quick-rejoin-btn');
     const matchesTableBody = document.querySelector('#matches-table tbody');
@@ -269,6 +280,7 @@ const poolBootstrap = JSON.stringify({
       sessions: loadSessions(),
       league: null,
       members: [],
+      viewingMemberId: null,
       predictionsByMember: {},
       results: {}
     };
@@ -411,6 +423,7 @@ const poolBootstrap = JSON.stringify({
 
     function setPredictionDraftFromInput(input) {
       if (!state.league || !state.active.memberId) return;
+      if (state.viewingMemberId && state.viewingMemberId !== state.active.memberId) return;
       if (!input || !input.matches('input[data-side]')) return;
 
       const wrapper = input.closest('.score-inputs');
@@ -563,12 +576,51 @@ const poolBootstrap = JSON.stringify({
       return i18n.supportsFlagEmoji() ? i18n.toFlagEmoji(safeIso) : '⚑';
     }
 
+    function getTimeZoneOffsetMs(date, timeZone) {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).formatToParts(date);
+
+      const byType = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      const asUTC = Date.UTC(
+        Number(byType.year),
+        Number(byType.month) - 1,
+        Number(byType.day),
+        Number(byType.hour),
+        Number(byType.minute),
+        Number(byType.second)
+      );
+
+      return asUTC - date.getTime();
+    }
+
+    function parseSourceKickoff(dateStr, timeStr) {
+      const [year, month, day] = String(dateStr || '').split('-').map(Number);
+      const [hour, minute] = String(timeStr || '00:00').split(':').map(Number);
+      if (!year || !month || !day || Number.isNaN(hour) || Number.isNaN(minute)) return null;
+
+      let utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0);
+      for (let i = 0; i < 3; i += 1) {
+        const offset = getTimeZoneOffsetMs(new Date(utcGuess), SOURCE_TIMEZONE);
+        utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0) - offset;
+      }
+
+      const result = new Date(utcGuess);
+      return Number.isNaN(result.getTime()) ? null : result;
+    }
+
     function parseKickoffDate(match) {
       if (!match || !match.date) return null;
       const rawTime = String(match.time || '').trim();
       const time = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : '00:00';
-      const kickoff = new Date(`${match.date}T${time}:00`);
-      return Number.isNaN(kickoff.getTime()) ? null : kickoff;
+      return parseSourceKickoff(match.date, time);
     }
 
     function isMatchLocked(match, now = new Date()) {
@@ -588,12 +640,11 @@ const poolBootstrap = JSON.stringify({
 
     function renderTournamentCountdown() {
       if (!tournamentCountdownCard || !tournamentCountdownValue || !tournamentCountdownNote) return;
-      let kickoff = null;
-      for (const match of matches) {
-        const parsed = parseKickoffDate(match);
-        if (!parsed) continue;
-        if (!kickoff || parsed.getTime() < kickoff.getTime()) kickoff = parsed;
-      }
+      const firstMatch = [...matches]
+        .filter((match) => !!match.date)
+        .sort((a, b) => Number(a.id || 0) - Number(b.id || 0))[0] || null;
+
+      const kickoff = firstMatch ? parseKickoffDate(firstMatch) : null;
 
       if (!kickoff) {
         tournamentCountdownCard.hidden = true;
@@ -609,7 +660,7 @@ const poolBootstrap = JSON.stringify({
       const now = new Date();
       const diff = kickoff.getTime() - now.getTime();
       tournamentCountdownValue.textContent = diff <= 0 ? 'El Mundial ya comenzó' : formatRemainingMs(diff);
-      tournamentCountdownNote.textContent = `Inicio estimado: ${new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(kickoff)} (hora local)`;
+      tournamentCountdownNote.textContent = `Inicio estimado: ${new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(kickoff)} (hora local de tu dispositivo)`;
     }
 
     async function refreshState() {
@@ -942,6 +993,10 @@ const poolBootstrap = JSON.stringify({
 
     async function savePredictions() {
       if (!state.league || !state.active.memberId) return;
+      if (state.viewingMemberId && state.viewingMemberId !== state.active.memberId) {
+        setStatus('Estás viendo otro jugador en solo lectura. Cambia a "Mis pronósticos" para editar.', 'warn');
+        return;
+      }
 
       const rows = [];
       const memberPredictions = state.predictionsByMember[state.active.memberId] || {};
@@ -1198,6 +1253,7 @@ const poolBootstrap = JSON.stringify({
       leagueCode.textContent = state.league.code;
 
       renderPlayerSelect();
+      renderPredictionViewerSelect();
       renderLeagueSessions();
       renderResultsSelector();
       renderMatchesTable();
@@ -1227,6 +1283,35 @@ const poolBootstrap = JSON.stringify({
 
       const me = state.members.find((m) => m.id === state.active.memberId);
       activePlayerName.value = me ? me.name : '';
+    }
+
+    function getViewingMemberId() {
+      if (state.members.some((m) => m.id === state.viewingMemberId)) {
+        return state.viewingMemberId;
+      }
+      return state.active.memberId;
+    }
+
+    function renderPredictionViewerSelect() {
+      const selected = getViewingMemberId();
+      state.viewingMemberId = selected;
+
+      predictionViewerSelect.innerHTML = state.members
+        .map((member) => `<option value="${member.id}" ${member.id === selected ? 'selected' : ''}>${member.name}</option>`)
+        .join('');
+      predictionViewerSelect.disabled = state.members.length <= 1;
+
+      const viewingMember = state.members.find((m) => m.id === selected) || null;
+      const isOwnView = selected === state.active.memberId;
+
+      predictionsTitle.textContent = isOwnView ? 'Mis pronósticos' : `Pronósticos de ${viewingMember?.name || ''}`;
+      predictionsReadOnlyNote.hidden = isOwnView;
+      predictionsReadOnlyNote.textContent = isOwnView
+        ? ''
+        : `Vista en solo lectura: solo ${activePlayerName.value || 'tu usuario'} puede editar sus pronósticos.`;
+
+      savePredictionsBtn.disabled = !isOwnView;
+      savePredictionsBtn.hidden = !isOwnView;
     }
 
     function renderLeagueSessions() {
@@ -1285,8 +1370,10 @@ const poolBootstrap = JSON.stringify({
     }
 
     function renderMatchesTable() {
-      const memberPredictions = state.predictionsByMember[state.active.memberId] || {};
-      const memberDraft = getMemberPredictionDraft();
+      const viewingMemberId = getViewingMemberId();
+      const isOwnView = viewingMemberId === state.active.memberId;
+      const memberPredictions = state.predictionsByMember[viewingMemberId] || {};
+      const memberDraft = isOwnView ? getMemberPredictionDraft() : null;
       const draftByMatch = memberDraft?.byMatch || {};
       const now = new Date();
 
@@ -1322,9 +1409,9 @@ const poolBootstrap = JSON.stringify({
               <td>${match.phase}</td>
               <td>
                 <div class="score-inputs" data-match-key="${match.key}">
-                  <input type="number" min="0" max="20" data-side="home" value="${pred1}" ${locked ? 'disabled' : ''} />
+                  <input type="number" min="0" max="20" data-side="home" value="${pred1}" ${(locked || !isOwnView) ? 'disabled' : ''} />
                   <span>-</span>
-                  <input type="number" min="0" max="20" data-side="away" value="${pred2}" ${locked ? 'disabled' : ''} />
+                  <input type="number" min="0" max="20" data-side="away" value="${pred2}" ${(locked || !isOwnView) ? 'disabled' : ''} />
                 </div>
                 ${lockText}
               </td>
@@ -1408,6 +1495,11 @@ const poolBootstrap = JSON.stringify({
     });
 
     savePredictionsBtn.addEventListener('click', savePredictions);
+    predictionViewerSelect.addEventListener('change', () => {
+      state.viewingMemberId = predictionViewerSelect.value || state.active.memberId;
+      renderPredictionViewerSelect();
+      renderMatchesTable();
+    });
     quickRejoinBtn.addEventListener('click', quickRejoinSelected);
     matchesTableBody.addEventListener('input', (event) => {
       setPredictionDraftFromInput(event.target);

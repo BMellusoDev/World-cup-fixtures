@@ -6,18 +6,18 @@ import { db } from '../lib/db.js';
 const worldcups = db.getWorldCups();
 const upcoming = worldcups.find((wc) => wc.upcoming) || worldcups[0] || null;
 
-const firstKickoff = (upcoming?.matches || [])
-  .map((match) => {
-    const rawTime = ((match as any).time || '').trim();
-    const time = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : '00:00';
-    return {
-      date: match.date || '',
-      time,
-      key: `${match.date || ''}T${time}`
-    };
-  })
-  .filter((item) => item.date)
-  .sort((a, b) => a.key.localeCompare(b.key))[0] || null;
+const firstMatch = [...(upcoming?.matches || [])]
+  .filter((match) => !!match.date)
+  .sort((a, b) => Number(a.id || 0) - Number(b.id || 0))[0] || null;
+
+const firstKickoff = firstMatch
+  ? {
+      date: firstMatch.date || '',
+      time: /^\d{2}:\d{2}$/.test(String((firstMatch as any).time || '').trim())
+        ? String((firstMatch as any).time).trim()
+        : '00:00'
+    }
+  : null;
 
 const homeBootstrap = JSON.stringify({
   kickoffDate: firstKickoff?.date || '',
@@ -40,7 +40,9 @@ const homeBootstrap = JSON.stringify({
 </Layout>
 
 <script>
+  // @ts-nocheck
   (() => {
+    const SOURCE_TIMEZONE = 'Europe/Madrid';
     const raw = document.getElementById('home-bootstrap')?.textContent || '{}';
     const { kickoffDate = '', kickoffTime = '' } = JSON.parse(raw);
 
@@ -48,14 +50,54 @@ const homeBootstrap = JSON.stringify({
     const valueEl = document.getElementById('home-countdown-value');
     const noteEl = document.getElementById('home-countdown-note');
 
-    function formatRemainingMs(ms) {
+    function getTimeZoneOffsetMs(date, timeZone) {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).formatToParts(date);
+
+      const byType = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      const asUTC = Date.UTC(
+        Number(byType.year),
+        Number(byType.month) - 1,
+        Number(byType.day),
+        Number(byType.hour),
+        Number(byType.minute),
+        Number(byType.second)
+      );
+
+      return asUTC - date.getTime();
+    }
+
+    function parseSourceKickoff(dateStr, timeStr) {
+      const [year, month, day] = String(dateStr || '').split('-').map(Number);
+      const [hour, minute] = String(timeStr || '00:00').split(':').map(Number);
+      if (!year || !month || !day || Number.isNaN(hour) || Number.isNaN(minute)) return null;
+
+      let utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0);
+      for (let i = 0; i < 3; i += 1) {
+        const offset = getTimeZoneOffsetMs(new Date(utcGuess), SOURCE_TIMEZONE);
+        utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0) - offset;
+      }
+
+      const result = new Date(utcGuess);
+      return Number.isNaN(result.getTime()) ? null : result;
+    }
+
+    const formatRemainingMs = (ms) => {
       const totalSeconds = Math.max(0, Math.floor(ms / 1000));
       const days = Math.floor(totalSeconds / 86400);
       const hours = Math.floor((totalSeconds % 86400) / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       const seconds = totalSeconds % 60;
       return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
-    }
+    };
 
     function renderHomeCountdown() {
       if (!card || !valueEl || !noteEl) return;
@@ -65,8 +107,8 @@ const homeBootstrap = JSON.stringify({
       }
 
       const time = /^\d{2}:\d{2}$/.test(String(kickoffTime || '').trim()) ? kickoffTime : '00:00';
-      const kickoff = new Date(`${kickoffDate}T${time}:00`);
-      if (Number.isNaN(kickoff.getTime())) {
+      const kickoff = parseSourceKickoff(kickoffDate, time);
+      if (!kickoff || Number.isNaN(kickoff.getTime())) {
         valueEl.textContent = 'Fecha inválida';
         noteEl.textContent = '';
         return;
@@ -74,7 +116,7 @@ const homeBootstrap = JSON.stringify({
 
       const diff = kickoff.getTime() - Date.now();
       valueEl.textContent = diff <= 0 ? 'El Mundial ya comenzó' : formatRemainingMs(diff);
-      noteEl.textContent = `Inicio estimado: ${new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(kickoff)} (hora local)`;
+      noteEl.textContent = `Inicio estimado: ${new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(kickoff)} (hora local de tu dispositivo)`;
     }
 
     renderHomeCountdown();
