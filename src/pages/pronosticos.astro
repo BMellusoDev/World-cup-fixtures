@@ -24,6 +24,7 @@ const matches = (upcoming?.matches || []).map((match) => ({
 const poolBootstrap = JSON.stringify({
   matches,
   seasonYear,
+  sourceTimeZone: upcoming?.sourceTimeZone || '',
   supabaseUrl: import.meta.env.PUBLIC_SUPABASE_URL || '',
   supabaseAnonKey: import.meta.env.PUBLIC_SUPABASE_ANON_KEY || ''
 });
@@ -209,7 +210,7 @@ const poolBootstrap = JSON.stringify({
 
   (() => {
     const rawBootstrap = document.getElementById('pool-bootstrap')?.textContent || '{}';
-    const { matches = [], seasonYear = 2026, supabaseUrl = '', supabaseAnonKey = '' } = JSON.parse(rawBootstrap);
+    const { matches = [], seasonYear = 2026, sourceTimeZone = '', supabaseUrl = '', supabaseAnonKey = '' } = JSON.parse(rawBootstrap);
 
     const ACTIVE_KEY = 'wcf.pool.active.v1';
     const LOCAL_KEY = 'wcf.pool.local.v1';
@@ -217,7 +218,34 @@ const poolBootstrap = JSON.stringify({
     const PREDICTION_DRAFTS_KEY = 'wcf.pool.predictionDrafts.v1';
     const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     const PREDICTION_LOCK_MINUTES = 5;
-    const SOURCE_TIMEZONE = 'Europe/Madrid';
+    
+    // Fallback stadium map for fixture sets stored in venue-local time.
+    const STADIUM_TIMEZONES = {
+      'Mexico City': 'America/Mexico_City',
+      'Guadalajara (Zapopan)': 'America/Mexico_City',
+      'Monterrey (Guadalupe)': 'America/Mexico_City',
+      'Toronto': 'America/Toronto',
+      'Vancouver': 'America/Vancouver',
+      'San Francisco Bay Area (Santa Clara)': 'America/Los_Angeles',
+      'Los Angeles (Inglewood)': 'America/Los_Angeles',
+      'Seattle': 'America/Los_Angeles',
+      'Las Vegas': 'America/Los_Angeles',
+      'Phoenix': 'America/Phoenix',
+      'Denver': 'America/Denver',
+      'Kansas City': 'America/Chicago',
+      'Dallas': 'America/Chicago',
+      'Houston': 'America/Chicago',
+      'Miami': 'America/New_York',
+      'New York/New Jersey (East Rutherford)': 'America/New_York',
+      'Atlanta': 'America/New_York',
+      'Boston': 'America/New_York',
+      'Philadelphia': 'America/New_York',
+      'Washington D.C.': 'America/New_York'
+    };
+    
+    function getStadiumTimezone(stadium) {
+      return STADIUM_TIMEZONES[stadium] || 'America/Mexico_City';
+    }
 
     const modePill = document.getElementById('pool-mode-pill');
     const tournamentCountdownCard = document.getElementById('tournament-countdown-card');
@@ -601,14 +629,14 @@ const poolBootstrap = JSON.stringify({
       return asUTC - date.getTime();
     }
 
-    function parseSourceKickoff(dateStr, timeStr) {
+    function parseSourceKickoff(dateStr, timeStr, timeZone = 'America/Mexico_City') {
       const [year, month, day] = String(dateStr || '').split('-').map(Number);
       const [hour, minute] = String(timeStr || '00:00').split(':').map(Number);
       if (!year || !month || !day || Number.isNaN(hour) || Number.isNaN(minute)) return null;
 
       let utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0);
       for (let i = 0; i < 3; i += 1) {
-        const offset = getTimeZoneOffsetMs(new Date(utcGuess), SOURCE_TIMEZONE);
+        const offset = getTimeZoneOffsetMs(new Date(utcGuess), timeZone);
         utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0) - offset;
       }
 
@@ -620,7 +648,8 @@ const poolBootstrap = JSON.stringify({
       if (!match || !match.date) return null;
       const rawTime = String(match.time || '').trim();
       const time = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : '00:00';
-      return parseSourceKickoff(match.date, time);
+      const timeZone = sourceTimeZone || getStadiumTimezone(match.stadium);
+      return parseSourceKickoff(match.date, time, timeZone);
     }
 
     function isMatchLocked(match, now = new Date()) {

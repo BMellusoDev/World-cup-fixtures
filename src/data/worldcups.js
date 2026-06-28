@@ -4,6 +4,7 @@ export const WORLD_CUPS = [
     "host": "Estados Unidos, Mexico y Canada",
     "champion": null,
     "upcoming": true,
+    "sourceTimeZone": "Europe/Madrid",
     "matches": [
       {
         "id": 1,

@@ -21,7 +21,8 @@ const firstKickoff = firstMatch
 
 const homeBootstrap = JSON.stringify({
   kickoffDate: firstKickoff?.date || '',
-  kickoffTime: firstKickoff?.time || ''
+  kickoffTime: firstKickoff?.time || '',
+  sourceTimeZone: upcoming?.sourceTimeZone || ''
 });
 ---
 
@@ -42,9 +43,8 @@ const homeBootstrap = JSON.stringify({
 <script>
   // @ts-nocheck
   (() => {
-    const SOURCE_TIMEZONE = 'Europe/Madrid';
     const raw = document.getElementById('home-bootstrap')?.textContent || '{}';
-    const { kickoffDate = '', kickoffTime = '' } = JSON.parse(raw);
+    const { kickoffDate = '', kickoffTime = '', sourceTimeZone = 'Europe/Madrid' } = JSON.parse(raw);
 
     const card = document.getElementById('home-countdown-card');
     const valueEl = document.getElementById('home-countdown-value');
@@ -82,7 +82,7 @@ const homeBootstrap = JSON.stringify({
 
       let utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0);
       for (let i = 0; i < 3; i += 1) {
-        const offset = getTimeZoneOffsetMs(new Date(utcGuess), SOURCE_TIMEZONE);
+        const offset = getTimeZoneOffsetMs(new Date(utcGuess), sourceTimeZone);
         utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0) - offset;
       }
 
