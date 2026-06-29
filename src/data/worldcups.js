@@ -803,8 +803,8 @@ export const WORLD_CUPS = [
         "phase": "Round of 32",
         "date": "2026-06-28",
         "stadium": "Los Angeles (Inglewood)",
-        "team1": "2A",
-        "team2": "2B",
+        "team1": "South Africa",
+        "team2": "Canada",
         "score1": null,
         "score2": null,
         "time": "21:00"
@@ -814,63 +814,63 @@ export const WORLD_CUPS = [
         "phase": "Round of 32",
         "date": "2026-06-29",
         "stadium": "Boston (Foxborough)",
-        "team1": "1E",
-        "team2": "3A/B/C/D/F",
+        "team1": "Germany",
+        "team2": "Paraguay",
         "score1": null,
         "score2": null,
-        "time": "19:00"
+        "time": "22:30"
       },
       {
         "id": 75,
         "phase": "Round of 32",
-        "date": "2026-06-29",
+        "date": "2026-06-30",
         "stadium": "Monterrey (Guadalupe)",
-        "team1": "1F",
-        "team2": "2C",
+        "team1": "Netherlands",
+        "team2": "Morocco",
         "score1": null,
         "score2": null,
-        "time": "22:30"
+        "time": "03:00"
       },
       {
         "id": 76,
         "phase": "Round of 32",
         "date": "2026-06-29",
         "stadium": "Houston",
-        "team1": "1C",
-        "team2": "2F",
+        "team1": "Brazil",
+        "team2": "Japan",
         "score1": null,
         "score2": null,
-        "time": "03:00"
+        "time": "19:00"
       },
       {
         "id": 77,
         "phase": "Round of 32",
         "date": "2026-06-30",
         "stadium": "New York/New Jersey (East Rutherford)",
-        "team1": "1I",
-        "team2": "3C/D/F/G/H",
+        "team1": "France",
+        "team2": "Sweden",
         "score1": null,
         "score2": null,
-        "time": "19:00"
+        "time": "23:00"
       },
       {
         "id": 78,
         "phase": "Round of 32",
         "date": "2026-06-30",
         "stadium": "Dallas (Arlington)",
-        "team1": "2E",
-        "team2": "2I",
+        "team1": "Ivory Coast",
+        "team2": "Norway",
         "score1": null,
         "score2": null,
-        "time": "23:00"
+        "time": "19:00"
       },
       {
         "id": 79,
         "phase": "Round of 32",
-        "date": "2026-06-30",
+        "date": "2026-07-01",
         "stadium": "Mexico City",
-        "team1": "1A",
-        "team2": "3C/E/F/H/I",
+        "team1": "Mexico",
+        "team2": "Ecuador",
         "score1": null,
         "score2": null,
         "time": "03:00"
@@ -880,8 +880,8 @@ export const WORLD_CUPS = [
         "phase": "Round of 32",
         "date": "2026-07-01",
         "stadium": "Atlanta",
-        "team1": "1L",
-        "team2": "3E/H/I/J/K",
+        "team1": "England",
+        "team2": "Congo",
         "score1": null,
         "score2": null,
         "time": "18:00"
@@ -889,54 +889,54 @@ export const WORLD_CUPS = [
       {
         "id": 81,
         "phase": "Round of 32",
-        "date": "2026-07-01",
+        "date": "2026-07-02",
         "stadium": "San Francisco Bay Area (Santa Clara)",
-        "team1": "1D",
-        "team2": "3B/E/F/I/J",
+        "team1": "USA",
+        "team2": "Bosnia & Herzegovina",
         "score1": null,
         "score2": null,
-        "time": "22:00"
+        "time": "02:00"
       },
       {
         "id": 82,
         "phase": "Round of 32",
         "date": "2026-07-01",
         "stadium": "Seattle",
-        "team1": "1G",
-        "team2": "3A/E/H/I/J",
+        "team1": "Belgium",
+        "team2": "Senegal",
         "score1": null,
         "score2": null,
-        "time": "02:00"
+        "time": "22:00"
       },
       {
         "id": 83,
         "phase": "Round of 32",
-        "date": "2026-07-02",
+        "date": "2026-07-03",
         "stadium": "Toronto",
-        "team1": "2K",
-        "team2": "2L",
+        "team1": "Portugal",
+        "team2": "Croatia",
         "score1": null,
         "score2": null,
-        "time": "21:00"
+        "time": "01:00"
       },
       {
         "id": 84,
         "phase": "Round of 32",
         "date": "2026-07-02",
         "stadium": "Los Angeles (Inglewood)",
-        "team1": "1H",
-        "team2": "2J",
+        "team1": "Spain",
+        "team2": "Austria",
         "score1": null,
         "score2": null,
-        "time": "01:00"
+        "time": "21:00"
       },
       {
         "id": 85,
         "phase": "Round of 32",
-        "date": "2026-07-02",
+        "date": "2026-07-03",
         "stadium": "Vancouver",
-        "team1": "1B",
-        "team2": "3E/F/G/I/J",
+        "team1": "Switzerland",
+        "team2": "Algeria",
         "score1": null,
         "score2": null,
         "time": "05:00"
@@ -944,35 +944,35 @@ export const WORLD_CUPS = [
       {
         "id": 86,
         "phase": "Round of 32",
-        "date": "2026-07-03",
+        "date": "2026-07-04",
         "stadium": "Miami (Miami Gardens)",
-        "team1": "1J",
-        "team2": "2H",
+        "team1": "Argentina",
+        "team2": "Cape Verde",
         "score1": null,
         "score2": null,
-        "time": "20:00"
+        "time": "00:00"
       },
       {
         "id": 87,
         "phase": "Round of 32",
-        "date": "2026-07-03",
+        "date": "2026-07-04",
         "stadium": "Kansas City",
-        "team1": "1K",
-        "team2": "3D/E/I/J/L",
+        "team1": "Colombia",
+        "team2": "Ghana",
         "score1": null,
         "score2": null,
-        "time": "00:00"
+        "time": "03:30"
       },
       {
         "id": 88,
         "phase": "Round of 32",
         "date": "2026-07-03",
         "stadium": "Dallas (Arlington)",
-        "team1": "2D",
-        "team2": "2G",
+        "team1": "Australia",
+        "team2": "Egypt",
         "score1": null,
         "score2": null,
-        "time": "03:30"
+        "time": "20:00"
       },
       {
         "id": 89,
