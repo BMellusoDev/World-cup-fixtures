@@ -979,30 +979,30 @@ export const WORLD_CUPS = [
         "phase": "Round of 16",
         "date": "2026-07-04",
         "stadium": "Philadelphia",
-        "team1": "W74",
-        "team2": "W77",
+        "team1": "France",
+        "team2": "Paraguay",
         "score1": null,
         "score2": null,
-        "time": "19:00"
+        "time": "23:00"
       },
       {
         "id": 90,
         "phase": "Round of 16",
         "date": "2026-07-04",
         "stadium": "Houston",
-        "team1": "W73",
-        "team2": "W75",
+        "team1": "Canada",
+        "team2": "Morocco",
         "score1": null,
         "score2": null,
-        "time": "23:00"
+        "time": "19:00"
       },
       {
         "id": 91,
         "phase": "Round of 16",
         "date": "2026-07-05",
         "stadium": "New York/New Jersey (East Rutherford)",
-        "team1": "W76",
-        "team2": "W78",
+        "team1": "Brazil",
+        "team2": "Norway",
         "score1": null,
         "score2": null,
         "time": "22:00"
@@ -1010,10 +1010,10 @@ export const WORLD_CUPS = [
       {
         "id": 92,
         "phase": "Round of 16",
-        "date": "2026-07-05",
+        "date": "2026-07-06",
         "stadium": "Mexico City",
-        "team1": "W79",
-        "team2": "W80",
+        "team1": "Mexico",
+        "team2": "England",
         "score1": null,
         "score2": null,
         "time": "02:00"
@@ -1023,8 +1023,8 @@ export const WORLD_CUPS = [
         "phase": "Round of 16",
         "date": "2026-07-06",
         "stadium": "Dallas (Arlington)",
-        "team1": "W83",
-        "team2": "W84",
+        "team1": "Spain",
+        "team2": "Portugal",
         "score1": null,
         "score2": null,
         "time": "21:00"
@@ -1032,10 +1032,10 @@ export const WORLD_CUPS = [
       {
         "id": 94,
         "phase": "Round of 16",
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "stadium": "Seattle",
-        "team1": "W81",
-        "team2": "W82",
+        "team1": "USA",
+        "team2": "Belgium",
         "score1": null,
         "score2": null,
         "time": "02:00"
@@ -1045,8 +1045,8 @@ export const WORLD_CUPS = [
         "phase": "Round of 16",
         "date": "2026-07-07",
         "stadium": "Atlanta",
-        "team1": "W86",
-        "team2": "W88",
+        "team1": "Argentina",
+        "team2": "Egypt",
         "score1": null,
         "score2": null,
         "time": "18:00"
@@ -1056,8 +1056,8 @@ export const WORLD_CUPS = [
         "phase": "Round of 16",
         "date": "2026-07-07",
         "stadium": "Vancouver",
-        "team1": "W85",
-        "team2": "W87",
+        "team1": "Switzerland",
+        "team2": "Colombia",
         "score1": null,
         "score2": null,
         "time": "22:00"
