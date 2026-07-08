@@ -1067,8 +1067,8 @@ export const WORLD_CUPS = [
         "phase": "Quarter-final",
         "date": "2026-07-09",
         "stadium": "Boston (Foxborough)",
-        "team1": "W89",
-        "team2": "W90",
+        "team1": "France",
+        "team2": "Morocco",
         "score1": null,
         "score2": null,
         "time": "22:00"
@@ -1078,8 +1078,8 @@ export const WORLD_CUPS = [
         "phase": "Quarter-final",
         "date": "2026-07-10",
         "stadium": "Los Angeles (Inglewood)",
-        "team1": "W93",
-        "team2": "W94",
+        "team1": "Spain",
+        "team2": "Belgium",
         "score1": null,
         "score2": null,
         "time": "21:00"
@@ -1089,8 +1089,8 @@ export const WORLD_CUPS = [
         "phase": "Quarter-final",
         "date": "2026-07-11",
         "stadium": "Miami (Miami Gardens)",
-        "team1": "W91",
-        "team2": "W92",
+        "team1": "Norway",
+        "team2": "England",
         "score1": null,
         "score2": null,
         "time": "23:00"
@@ -1098,10 +1098,10 @@ export const WORLD_CUPS = [
       {
         "id": 100,
         "phase": "Quarter-final",
-        "date": "2026-07-11",
+        "date": "2026-07-12",
         "stadium": "Kansas City",
-        "team1": "W95",
-        "team2": "W96",
+        "team1": "Argentina",
+        "team2": "Switzerland",
         "score1": null,
         "score2": null,
         "time": "03:00"
