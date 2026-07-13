@@ -1111,8 +1111,8 @@ export const WORLD_CUPS = [
         "phase": "Semi-final",
         "date": "2026-07-14",
         "stadium": "Dallas (Arlington)",
-        "team1": "W97",
-        "team2": "W98",
+        "team1": "France",
+        "team2": "Spain",
         "score1": null,
         "score2": null,
         "time": "21:00"
@@ -1122,8 +1122,8 @@ export const WORLD_CUPS = [
         "phase": "Semi-final",
         "date": "2026-07-15",
         "stadium": "Atlanta",
-        "team1": "W99",
-        "team2": "W100",
+        "team1": "England",
+        "team2": "Argentina",
         "score1": null,
         "score2": null,
         "time": "21:00"
