@@ -1135,8 +1135,8 @@ export const WORLD_CUPS = [
         "stadium": "Miami (Miami Gardens)",
         "team1": "L101",
         "team2": "L102",
-        "score1": null,
-        "score2": null,
+        "score1": France,
+        "score2": England,
         "time": "23:00"
       },
       {
@@ -1144,8 +1144,8 @@ export const WORLD_CUPS = [
         "phase": "Final",
         "date": "2026-07-19",
         "stadium": "New York/New Jersey (East Rutherford)",
-        "team1": "W101",
-        "team2": "W102",
+        "team1": "Spain",
+        "team2": "Argentina",
         "score1": null,
         "score2": null,
         "time": "21:00"
