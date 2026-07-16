@@ -1133,10 +1133,10 @@ export const WORLD_CUPS = [
         "phase": "Match for third place",
         "date": "2026-07-18",
         "stadium": "Miami (Miami Gardens)",
-        "team1": "L101",
-        "team2": "L102",
-        "score1": France,
-        "score2": England,
+        "team1": "France",
+        "team2": "England",
+        "score1": null,
+        "score2": null,
         "time": "23:00"
       },
       {
